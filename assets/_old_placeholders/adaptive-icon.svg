@@ -1,0 +1,67 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shieldGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#031636;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A2B4C;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Android adaptive icon - foreground layer only (background will be set in app.json) -->
+  <!-- Safe area: 432x432 centered (296-728) -->
+  
+  <!-- Shield shape (centered, within safe area) -->
+  <path d="M 512 250 
+           C 512 250, 700 285, 700 285
+           C 720 290, 735 305, 735 325
+           L 735 550
+           C 735 720, 620 830, 512 910
+           C 404 830, 289 720, 289 550
+           L 289 325
+           C 289 305, 304 290, 324 285
+           C 324 285, 512 250, 512 250 Z"
+        fill="url(#shieldGrad)"
+        filter="url(#glow)"/>
+  
+  <!-- Inner shield highlight -->
+  <path d="M 512 290 
+           C 512 290, 670 320, 670 320
+           C 685 323, 695 333, 695 348
+           L 695 545
+           C 695 690, 605 785, 512 855"
+        fill="none"
+        stroke="#8293BA"
+        stroke-width="6"
+        opacity="0.3"
+        stroke-linecap="round"/>
+  
+  <!-- Wrench centered in shield -->
+  <g transform="translate(512, 530)">
+    <!-- Wrench body -->
+    <rect x="-35" y="-160" width="70" height="220" rx="12" fill="#F7FAFC"/>
+    
+    <!-- Wrench head (open end) -->
+    <path d="M -55 -160 L -55 -105 L -35 -105 L -35 -160 Z" fill="#F7FAFC"/>
+    <path d="M 35 -160 L 35 -105 L 55 -105 L 55 -160 Z" fill="#F7FAFC"/>
+    
+    <!-- Wrench adjustment holes -->
+    <circle cx="0" cy="-90" r="16" fill="#031636"/>
+    <circle cx="0" cy="-20" r="16" fill="#031636"/>
+    <circle cx="0" cy="30" r="16" fill="#031636"/>
+  </g>
+  
+  <!-- Trust badge - green checkmark (positioned to stay in safe area) -->
+  <circle cx="700" cy="700" r="75" fill="#2ECC71" filter="url(#glow)"/>
+  <path d="M 670 700 L 690 720 L 730 680" 
+        fill="none" 
+        stroke="white" 
+        stroke-width="16" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>

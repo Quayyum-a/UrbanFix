@@ -1,0 +1,72 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A2B4C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#031636;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shieldGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#F7FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E5E9EB;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="1024" height="1024" rx="180" fill="url(#bgGradient)"/>
+  
+  <!-- Main container with subtle shadow -->
+  <g filter="url(#shadow)">
+    <!-- Outer shield shape -->
+    <path d="M 512 200 
+             C 512 200, 680 230, 680 230
+             C 680 230, 700 240, 700 260
+             L 700 480
+             C 700 650, 600 750, 512 820
+             C 424 750, 324 650, 324 480
+             L 324 260
+             C 324 240, 344 230, 344 230
+             C 344 230, 512 200, 512 200 Z"
+          fill="url(#shieldGradient)"
+          stroke="#031636"
+          stroke-width="8"/>
+    
+    <!-- Wrench icon in shield -->
+    <g transform="translate(512, 480)">
+      <!-- Wrench body -->
+      <rect x="-25" y="-120" width="50" height="160" rx="8" fill="#031636"/>
+      
+      <!-- Wrench head (open end) -->
+      <path d="M -40 -120 L -40 -80 L -25 -80 L -25 -120 Z" fill="#031636"/>
+      <path d="M 25 -120 L 25 -80 L 40 -80 L 40 -120 Z" fill="#031636"/>
+      
+      <!-- Wrench adjustment hole -->
+      <circle cx="0" cy="-60" r="12" fill="#F7FAFC"/>
+      <circle cx="0" cy="0" r="12" fill="#F7FAFC"/>
+      
+      <!-- Circuit board trace accent -->
+      <line x1="-60" y1="-40" x2="-40" y2="-40" stroke="#8293BA" stroke-width="3" opacity="0.4"/>
+      <line x1="40" y1="-40" x2="60" y2="-40" stroke="#8293BA" stroke-width="3" opacity="0.4"/>
+      <circle cx="-60" cy="-40" r="4" fill="#8293BA" opacity="0.4"/>
+      <circle cx="60" cy="-40" r="4" fill="#8293BA" opacity="0.4"/>
+    </g>
+    
+    <!-- Trust badge - green checkmark -->
+    <circle cx="680" cy="680" r="60" fill="#2ECC71"/>
+    <path d="M 655 680 L 670 695 L 705 660" 
+          fill="none" 
+          stroke="white" 
+          stroke-width="12" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+</svg>

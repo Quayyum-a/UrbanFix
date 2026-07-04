@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "UrbanFix",
+    "slug": "urbanfix",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/Urbanfix--app-icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A1628"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.urbanfix.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "UrbanFix needs your location to find nearby technicians and provide pickup/delivery services.",
+        "NSCameraUsageDescription": "UrbanFix needs camera access to take photos of devices for repair documentation.",
+        "NSPhotoLibraryUsageDescription": "UrbanFix needs photo library access to upload images of devices for repair documentation."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/Urbanfix-adaptive-icon.png",
+        "backgroundColor": "#0A1628"
+      },
+      "package": "com.urbanfix.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/Urbanfix-favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "UrbanFix needs your location to find nearby technicians and provide pickup/delivery services."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UrbanFix needs photo library access to upload images of devices for repair documentation.",
+          "cameraPermission": "UrbanFix needs camera access to take photos of devices for repair documentation."
+        }
+      ]
+    ],
+    "scheme": "urbanfix",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}

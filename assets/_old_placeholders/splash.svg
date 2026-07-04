@@ -1,0 +1,13 @@
+<svg width="1284" height="2778" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="splashGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A2B4C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#031636;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1284" height="2778" fill="url(#splashGrad)"/>
+  <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" 
+        fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="bold">UrbanFix</text>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" 
+        fill="#8293ba" font-family="Arial, sans-serif" font-size="18">Professional Device Repair</text>
+</svg>

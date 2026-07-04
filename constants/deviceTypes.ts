@@ -1,0 +1,106 @@
+// Device types and models as referenced in Engineering Guide
+
+export const deviceTypes = [
+  'smartphone',
+  'laptop',
+  'tablet',
+  'desktop',
+  'other',
+] as const
+
+export type DeviceType = typeof deviceTypes[number]
+
+export const deviceBrands = {
+  smartphone: [
+    'Apple',
+    'Samsung',
+    'Huawei',
+    'Xiaomi',
+    'Oppo',
+    'Vivo',
+    'Realme',
+    'OnePlus',
+    'Tecno',
+    'Infinix',
+    'Itel',
+    'Nokia',
+    'Google',
+    'Other',
+  ],
+  laptop: [
+    'Apple',
+    'Dell',
+    'HP',
+    'Lenovo',
+    'Asus',
+    'Acer',
+    'MSI',
+    'Toshiba',
+    'Sony',
+    'Other',
+  ],
+  tablet: [
+    'Apple',
+    'Samsung',
+    'Huawei',
+    'Lenovo',
+    'Amazon',
+    'Microsoft',
+    'Other',
+  ],
+  desktop: [
+    'Dell',
+    'HP',
+    'Lenovo',
+    'Asus',
+    'Custom Build',
+    'Other',
+  ],
+  other: [
+    'Other',
+  ],
+} as const
+
+// Popular smartphone models for quick access
+export const popularSmartphoneModels = {
+  Apple: [
+    'iPhone 15 Pro Max',
+    'iPhone 15 Pro',
+    'iPhone 15 Plus',
+    'iPhone 15',
+    'iPhone 14 Pro Max',
+    'iPhone 14 Pro',
+    'iPhone 14 Plus',
+    'iPhone 14',
+    'iPhone 13 Pro Max',
+    'iPhone 13 Pro',
+    'iPhone 13',
+    'iPhone 12 Pro Max',
+    'iPhone 12 Pro',
+    'iPhone 12',
+    'iPhone 11 Pro Max',
+    'iPhone 11 Pro',
+    'iPhone 11',
+    'iPhone XS Max',
+    'iPhone XS',
+    'iPhone XR',
+    'iPhone X',
+  ],
+  Samsung: [
+    'Galaxy S24 Ultra',
+    'Galaxy S24+',
+    'Galaxy S24',
+    'Galaxy S23 Ultra',
+    'Galaxy S23+',
+    'Galaxy S23',
+    'Galaxy S22 Ultra',
+    'Galaxy S22+',
+    'Galaxy S22',
+    'Galaxy Note 20 Ultra',
+    'Galaxy Note 20',
+    'Galaxy A54',
+    'Galaxy A34',
+    'Galaxy A24',
+    'Galaxy A14',
+  ],
+} as const
