@@ -57,7 +57,27 @@ npx expo start --clear --no-web
 
 ## 🐛 Common Issues & Solutions
 
-### Issue 1: Web Bundling Failed
+### Issue 1: React Native Worklets Missing (Reanimated 4)
+**Error**: `Cannot find module 'react-native-worklets/plugin'`
+
+**Solution**:
+```bash
+# Install the required package
+npm install react-native-worklets --legacy-peer-deps
+
+# Clear all caches
+rm -rf .expo node_modules/.cache
+rm -rf $TMPDIR/metro-* $TMPDIR/react-* 2>/dev/null
+
+# Restart Expo
+npx expo start --clear
+```
+
+**Why it happens**: React Native Reanimated 4 requires the worklets plugin as a peer dependency
+
+---
+
+### Issue 2: Web Bundling Failed
 **Error**: Web bundling fails with OpenTelemetry or Supabase errors
 
 **Solution**:
