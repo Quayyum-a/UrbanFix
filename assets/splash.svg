@@ -1,0 +1,103 @@
+<svg width="1284" height="2778" viewBox="0 0 1284 2778" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="splashBg" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A1628;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#031636;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1284" height="2778" fill="url(#splashBg)"/>
+  
+  <!-- Subtle circuit board pattern -->
+  <g opacity="0.08">
+    <line x1="200" y1="600" x2="400" y2="600" stroke="#8293BA" stroke-width="2"/>
+    <circle cx="200" cy="600" r="6" fill="#8293BA"/>
+    <circle cx="400" cy="600" r="6" fill="#8293BA"/>
+    
+    <line x1="884" y1="800" x2="1084" y2="800" stroke="#8293BA" stroke-width="2"/>
+    <circle cx="884" cy="800" r="6" fill="#8293BA"/>
+    <circle cx="1084" cy="800" r="6" fill="#8293BA"/>
+    
+    <line x1="300" y1="2100" x2="500" y2="2100" stroke="#8293BA" stroke-width="2"/>
+    <circle cx="300" cy="2100" r="6" fill="#8293BA"/>
+    <circle cx="500" cy="2100" r="6" fill="#8293BA"/>
+    
+    <line x1="784" y1="2200" x2="984" y2="2200" stroke="#8293BA" stroke-width="2"/>
+    <circle cx="784" cy="2200" r="6" fill="#8293BA"/>
+    <circle cx="984" cy="2200" r="6" fill="#8293BA"/>
+  </g>
+  
+  <!-- Logo Container -->
+  <g transform="translate(642, 1200)">
+    <!-- Shield with wrench -->
+    <g filter="url(#glow)">
+      <!-- Shield -->
+      <path d="M 0 -180 
+               C 0 -180, 140 -160, 140 -160
+               C 155 -158, 165 -148, 165 -133
+               L 165 20
+               C 165 160, 90 240, 0 300
+               C -90 240, -165 160, -165 20
+               L -165 -133
+               C -165 -148, -155 -158, -140 -160
+               C -140 -160, 0 -180, 0 -180 Z"
+            fill="#F7FAFC"
+            stroke="#E5E9EB"
+            stroke-width="4"/>
+      
+      <!-- Wrench in shield -->
+      <g>
+        <rect x="-18" y="-80" width="36" height="130" rx="6" fill="#031636"/>
+        <path d="M -28 -80 L -28 -50 L -18 -50 L -18 -80 Z" fill="#031636"/>
+        <path d="M 18 -80 L 18 -50 L 28 -50 L 28 -80 Z" fill="#031636"/>
+        <circle cx="0" cy="-35" r="8" fill="#F7FAFC"/>
+        <circle cx="0" cy="10" r="8" fill="#F7FAFC"/>
+      </g>
+      
+      <!-- Trust badge -->
+      <circle cx="110" cy="110" r="40" fill="#2ECC71"/>
+      <path d="M 95 110 L 105 120 L 125 100" 
+            fill="none" 
+            stroke="white" 
+            stroke-width="8" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"/>
+    </g>
+    
+    <!-- UrbanFix Text -->
+    <text x="0" y="380" 
+          text-anchor="middle" 
+          fill="white" 
+          font-family="Arial, sans-serif" 
+          font-size="72" 
+          font-weight="bold"
+          letter-spacing="2">
+      UrbanFix
+    </text>
+    
+    <!-- Tagline -->
+    <text x="0" y="450" 
+          text-anchor="middle" 
+          fill="#8293BA" 
+          font-family="Arial, sans-serif" 
+          font-size="28"
+          opacity="0.9">
+      Trusted Repairs, Guaranteed
+    </text>
+  </g>
+  
+  <!-- Loading indicator -->
+  <g transform="translate(642, 2400)">
+    <circle cx="-50" cy="0" r="8" fill="#8293BA" opacity="0.4"/>
+    <circle cx="0" cy="0" r="8" fill="#8293BA" opacity="0.7"/>
+    <circle cx="50" cy="0" r="8" fill="#8293BA" opacity="0.4"/>
+  </g>
+</svg>

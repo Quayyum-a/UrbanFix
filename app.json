@@ -55,7 +55,9 @@
           "photosPermission": "UrbanFix needs photo library access to upload images of devices for repair documentation.",
           "cameraPermission": "UrbanFix needs camera access to take photos of devices for repair documentation."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "scheme": "urbanfix",
     "extra": {
