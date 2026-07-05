@@ -4,7 +4,7 @@
     "slug": "urbanfix",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Urbanfix--app-icon.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -25,7 +25,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Urbanfix-adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon copy.png",
         "backgroundColor": "#0A1628"
       },
       "package": "com.urbanfix.app",
@@ -38,7 +38,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/Urbanfix-favicon.png",
+      "favicon": "./assets/favicon copy.png",
       "bundler": "metro"
     },
     "plugins": [

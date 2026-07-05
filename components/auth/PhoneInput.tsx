@@ -10,9 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert
+  Alert,
+  Pressable
 } from 'react-native'
-import { Button } from '@/components/ui/Button'
 import { phoneAuthService } from '@/lib/auth'
 import type { PhoneValidationResult } from '@/lib/auth'
 
@@ -29,40 +29,35 @@ export function PhoneInput({
   loading = false,
   initialPhone = '' 
 }: PhoneInputProps) {
-  const [phone, setPhone] = useState(initialPhone || '+234')
+  // Extract just the phone number without country code for initial value
+  const getPhoneNumber = (fullPhone: string) => {
+    return fullPhone.startsWith('+234') ? fullPhone.slice(4) : ''
+  }
+  
+  const [phoneNumber, setPhoneNumber] = useState(getPhoneNumber(initialPhone))
   const [isLoading, setIsLoading] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   // Real-time phone validation
-  const validatePhone = useCallback((phoneNumber: string): PhoneValidationResult => {
-    return phoneAuthService.validatePhoneNumber(phoneNumber)
+  const validatePhone = useCallback((fullPhone: string): PhoneValidationResult => {
+    return phoneAuthService.validatePhoneNumber(fullPhone)
   }, [])
 
-  // Handle phone input changes
+  // Handle phone input changes (only the numeric part after country code)
   const handlePhoneChange = useCallback((text: string) => {
-    // Ensure +234 prefix is always present
-    let formattedText = text
-    if (!formattedText.startsWith('+234')) {
-      if (formattedText.startsWith('234')) {
-        formattedText = '+' + formattedText
-      } else if (formattedText.startsWith('0')) {
-        formattedText = '+234' + formattedText.slice(1)
-      } else if (formattedText.match(/^[0-9]/)) {
-        formattedText = '+234' + formattedText
-      } else {
-        formattedText = '+234'
-      }
-    }
-
-    // Remove non-numeric characters after +234
-    const prefix = '+234'
-    const numbers = formattedText.slice(4).replace(/[^0-9]/g, '')
+    // Remove non-numeric characters
+    let numbers = text.replace(/[^0-9]/g, '')
     
-    // Limit to 10 digits after +234
+    // Remove leading 0 if present (Nigerian format)
+    if (numbers.startsWith('0')) {
+      numbers = numbers.slice(1)
+    }
+    
+    // Limit to 10 digits
     const limitedNumbers = numbers.slice(0, 10)
-    formattedText = prefix + limitedNumbers
-
-    setPhone(formattedText)
+    
+    setPhoneNumber(limitedNumbers)
     
     // Clear validation error when user starts typing
     if (validationError) {
@@ -70,45 +65,73 @@ export function PhoneInput({
     }
   }, [validationError])
 
+  // Get full phone number with country code
+  const getFullPhoneNumber = useCallback(() => {
+    return `+234${phoneNumber}`
+  }, [phoneNumber])
+
   // Handle send OTP
   const handleSendOTP = useCallback(async () => {
     try {
+      console.log('🔘 [PhoneInput] Send OTP button pressed')
+      
+      // Check terms agreement first
+      if (!agreedToTerms) {
+        console.log('⚠️ [PhoneInput] Terms not agreed')
+        Alert.alert(
+          'Terms Required',
+          'Please agree to the Terms of Service and Privacy Policy to continue.',
+          [{ text: 'OK' }]
+        )
+        return
+      }
+
       setIsLoading(true)
       setValidationError(null)
 
+      const fullPhone = getFullPhoneNumber()
+      console.log('📱 [PhoneInput] Full phone number:', fullPhone)
+
       // Validate phone number
-      const validation = validatePhone(phone)
+      const validation = validatePhone(fullPhone)
       if (!validation.isValid) {
+        console.log('❌ [PhoneInput] Validation failed:', validation.error)
         setValidationError(validation.error || 'Invalid phone number')
         return
       }
 
-      const result = await phoneAuthService.sendOTP(phone)
+      console.log('📤 [PhoneInput] Calling phoneAuthService.sendOTP...')
+      const result = await phoneAuthService.sendOTP(fullPhone)
+      console.log('📥 [PhoneInput] Result:', result)
       
       if (result.success) {
-        onOTPSent(phone)
+        console.log('✅ [PhoneInput] OTP sent successfully')
+        onOTPSent(fullPhone)
         Alert.alert(
           'Verification Code Sent',
-          `We've sent a 6-digit code to ${phone}. Please enter it below.`,
+          `We've sent a 6-digit code to ${fullPhone}. Please enter it below.`,
           [{ text: 'OK' }]
         )
       } else {
         const errorMessage = result.error || 'Failed to send verification code'
+        console.error('❌ [PhoneInput] Send failed:', errorMessage)
         setValidationError(errorMessage)
         onError(errorMessage)
       }
     } catch (error) {
+      console.error('❌ [PhoneInput] Unexpected error:', error)
       const errorMessage = 'Network error. Please check your connection.'
       setValidationError(errorMessage)
       onError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [phone, validatePhone, onOTPSent, onError])
+  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onOTPSent, onError])
 
   // Check if form is valid
-  const isValid = validatePhone(phone).isValid
-  const canSubmit = isValid && !isLoading && !loading
+  const fullPhone = getFullPhoneNumber()
+  const isValid = phoneNumber.length === 10 && validatePhone(fullPhone).isValid
+  const canSubmit = isValid && agreedToTerms && !isLoading && !loading
 
   return (
     <KeyboardAvoidingView
@@ -125,23 +148,24 @@ export function PhoneInput({
 
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
-            <View style={styles.countryCode}>
-              <Text style={styles.countryCodeText}>🇳🇬</Text>
+            <View style={styles.countryCodeContainer}>
+              <Text style={styles.countryFlag}>🇳🇬</Text>
+              <Text style={styles.countryCodeText}>+234</Text>
             </View>
             <TextInput
               style={[
                 styles.phoneInput,
                 validationError && styles.phoneInputError
               ]}
-              value={phone}
+              value={phoneNumber}
               onChangeText={handlePhoneChange}
-              placeholder="+234XXXXXXXXXX"
+              placeholder="8066025051"
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
               autoFocus
               autoComplete="tel"
               textContentType="telephoneNumber"
-              maxLength={14} // +234 (4) + 10 digits
+              maxLength={10}
               editable={!isLoading && !loading}
             />
           </View>
@@ -159,7 +183,29 @@ export function PhoneInput({
           </View>
         </View>
 
-        <Button
+        {/* Terms and Conditions Checkbox */}
+        <Pressable 
+          style={styles.checkboxContainer}
+          onPress={() => setAgreedToTerms(!agreedToTerms)}
+          disabled={isLoading || loading}
+        >
+          <View style={[
+            styles.checkbox,
+            agreedToTerms && styles.checkboxChecked
+          ]}>
+            {agreedToTerms && (
+              <Text style={styles.checkmark}>✓</Text>
+            )}
+          </View>
+          <Text style={styles.checkboxLabel}>
+            I agree to the{' '}
+            <Text style={styles.linkText}>Terms of Service</Text>
+            {' '}and{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={handleSendOTP}
           disabled={!canSubmit}
           style={[
@@ -170,18 +216,12 @@ export function PhoneInput({
           {isLoading || loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#FFFFFF" size="small" />
-              <Text style={styles.sendButtonText}>Sending...</Text>
+              <Text style={styles.sendButtonText}>Sending Code...</Text>
             </View>
           ) : (
-            <Text style={styles.sendButtonText}>Send Verification Code</Text>
+            <Text style={styles.sendButtonText}>Send Code</Text>
           )}
-        </Button>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </Text>
-        </View>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   )
@@ -215,7 +255,7 @@ const styles = StyleSheet.create({
     lineHeight: 24
   },
   inputContainer: {
-    marginBottom: 32
+    marginBottom: 24
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -225,18 +265,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#FFFFFF'
   },
-  countryCode: {
+  countryCodeContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 18,
     backgroundColor: '#F9FAFB',
     borderRightWidth: 1,
     borderRightColor: '#E5E7EB',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 8
   },
-  countryCodeText: {
+  countryFlag: {
     fontSize: 20,
     lineHeight: 24
+  },
+  countryCodeText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111827'
   },
   phoneInput: {
     flex: 1,
@@ -247,7 +294,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF'
   },
   phoneInputError: {
-    borderColor: '#EF4444',
     backgroundColor: '#FEF2F2'
   },
   errorContainer: {
@@ -268,36 +314,71 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     lineHeight: 18
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingHorizontal: 4
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2
+  },
+  checkboxChecked: {
+    backgroundColor: '#ff5722', // UrbanFix emergency orange
+    borderColor: '#ff5722'
+  },
+  checkmark: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 20
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20
+  },
+  linkText: {
+    color: '#ff5722', // UrbanFix emergency orange for links
+    fontWeight: '600'
+  },
   sendButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ff5722', // UrbanFix secondary/emergency orange
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24
+    marginBottom: 24,
+    shadowColor: '#ff5722',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4
   },
   sendButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-    opacity: 0.6
+    backgroundColor: '#D1D5DB',
+    opacity: 0.5,
+    shadowOpacity: 0
   },
   sendButtonText: {
     color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '600'
+    fontWeight: '700',
+    letterSpacing: 0.5
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
-  },
-  footer: {
-    alignItems: 'center',
-    paddingHorizontal: 16
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    lineHeight: 18
   }
 })

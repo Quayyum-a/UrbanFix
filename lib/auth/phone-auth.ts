@@ -72,9 +72,12 @@ export class PhoneAuthService {
    */
   public async sendOTP(phone: string): Promise<AuthResult> {
     try {
+      console.log('📱 [Phone Auth] Sending OTP to:', phone)
+      
       // Validate phone format first
       const validation = this.validatePhoneNumber(phone)
       if (!validation.isValid) {
+        console.error('❌ [Phone Auth] Validation failed:', validation.error)
         return {
           success: false,
           error: validation.error
@@ -82,16 +85,20 @@ export class PhoneAuthService {
       }
 
       const formattedPhone = validation.formatted!
+      console.log('✅ [Phone Auth] Phone validated:', formattedPhone)
       
       // Check rate limiting
       const rateLimitCheck = await this.otpService.checkRateLimit(formattedPhone)
       if (!rateLimitCheck.allowed) {
+        console.error('❌ [Phone Auth] Rate limit exceeded:', rateLimitCheck.error)
         return {
           success: false,
           error: rateLimitCheck.error
         }
       }
 
+      console.log('📤 [Phone Auth] Calling Supabase signInWithOtp...')
+      
       // Use Supabase Auth with phone provider
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
@@ -102,13 +109,16 @@ export class PhoneAuthService {
       })
 
       if (error) {
-        console.error('Supabase OTP error:', error)
+        console.error('❌ [Phone Auth] Supabase OTP error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
         return {
           success: false,
           error: 'Failed to send verification code. Please try again.'
         }
       }
 
+      console.log('✅ [Phone Auth] OTP sent successfully!')
+      
       // Track OTP attempt for rate limiting
       await this.otpService.recordOTPAttempt(formattedPhone)
 
@@ -116,7 +126,7 @@ export class PhoneAuthService {
         success: true
       }
     } catch (error) {
-      console.error('Send OTP error:', error)
+      console.error('❌ [Phone Auth] Unexpected error:', error)
       return {
         success: false,
         error: 'Network error. Please check your connection and try again.'

@@ -23,7 +23,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     const currentRoute = `/${segments.join('/')}`
     
-    // Check route access
+    // Allow splash screen and auth routes without checks
+    if (currentRoute === '/splash' || currentRoute.startsWith('/auth')) {
+      return
+    }
+    
+    // Check route access for protected routes
     const checkRouteAccess = async () => {
       try {
         const accessResult = await roleService.checkRouteAccess(currentRoute)

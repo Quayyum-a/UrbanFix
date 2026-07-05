@@ -235,7 +235,7 @@ export function OTPInput({
               >
                 {isResending ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator color="#3B82F6" size="small" />
+                    <ActivityIndicator color="#ff5722" size="small" />
                     <Text style={styles.resendText}>Sending...</Text>
                   </View>
                 ) : (
@@ -321,8 +321,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF'
   },
   otpInputFilled: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF'
+    borderColor: '#ff5722', // UrbanFix emergency orange
+    backgroundColor: '#FFF4F2'
   },
   otpInputError: {
     borderColor: '#EF4444',
@@ -342,20 +342,27 @@ const styles = StyleSheet.create({
     gap: 16
   },
   verifyButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ff5722', // UrbanFix emergency orange
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    shadowColor: '#ff5722',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4
   },
   verifyButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-    opacity: 0.6
+    backgroundColor: '#D1D5DB',
+    opacity: 0.5,
+    shadowOpacity: 0
   },
   verifyButtonText: {
     color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '600'
+    fontWeight: '700',
+    letterSpacing: 0.5
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -374,7 +381,7 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   resendLink: {
-    color: '#3B82F6',
+    color: '#ff5722', // UrbanFix emergency orange
     fontWeight: '600'
   },
   timerText: {
@@ -388,7 +395,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: '#3B82F6',
+    color: '#ff5722', // UrbanFix emergency orange
     fontWeight: '500'
   },
   footer: {
