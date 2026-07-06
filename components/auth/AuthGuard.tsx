@@ -2,7 +2,6 @@
 // Implements Requirements 2.5: Role-based access control
 
 import React, { useEffect } from 'react'
-import { View, ActivityIndicator, StyleSheet } from 'react-native'
 import { useRouter, useSegments } from 'expo-router'
 import { useAuth } from '@/hooks/useAuth'
 import { roleService } from '@/lib/auth'
@@ -24,7 +23,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     const currentRoute = `/${segments.join('/')}`
     
     // Allow splash screen and auth routes without checks
-    if (currentRoute === '/splash' || currentRoute.startsWith('/auth')) {
+    if (currentRoute === '/splash' || currentRoute === '/' || currentRoute.startsWith('/auth')) {
       return
     }
     
@@ -48,23 +47,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     checkRouteAccess()
   }, [isAuthenticated, role, segments, router, initialized, loading])
 
-  // Show loading spinner while initializing or loading
-  if (!initialized || loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </View>
-    )
-  }
-
+  // Don't show loading spinner - let the app routes handle their own loading states
+  // This allows splash screen to show properly
   return <>{children}</>
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF'
-  }
-})

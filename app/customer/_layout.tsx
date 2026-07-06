@@ -1,5 +1,5 @@
 import React from 'react'
-import { Platform } from 'react-native'
+import { Platform, Pressable } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing, typography, touchTargets } from '@/constants/theme'
@@ -100,15 +100,20 @@ export default function CustomerLayout() {
         tabBarInactiveTintColor: colors.text.secondary,
         
         // Tab bar press behavior
-        tabBarButton: (props) => (
-          <props.children
-            {...props}
-            onPress={(e) => {
-              handleTabPress()
-              props.onPress?.(e)
-            }}
-          />
-        ),
+        tabBarButton: (props) => {
+          const { children, ...restProps } = props
+          return (
+            <Pressable
+              {...restProps}
+              onPress={(e) => {
+                handleTabPress()
+                restProps.onPress?.(e)
+              }}
+            >
+              {children}
+            </Pressable>
+          )
+        },
       }}
       
       // Screen listeners for additional interactions
