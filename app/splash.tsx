@@ -42,7 +42,7 @@ export default function SplashScreen() {
       })
     ])
 
-    // Start fade-slide transition after 2.5 seconds
+    // Start fade-slide transition after 3 seconds
     const transitionTimer = setTimeout(() => {
       Animated.timing(fadeOut, {
         toValue: 0,
@@ -52,7 +52,7 @@ export default function SplashScreen() {
         // Navigate to login screen after animation completes
         router.replace('/auth/login')
       })
-    }, 2500)
+    }, 3000) // 3 seconds display time
 
     // Start the reveal animation
     revealAnimation.start()

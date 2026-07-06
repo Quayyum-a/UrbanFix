@@ -13,7 +13,6 @@ import {
   Pressable,
   Alert
 } from 'react-native'
-import { Button } from '@/components/ui/Button'
 import { phoneAuthService } from '@/lib/auth'
 
 interface OTPInputProps {
@@ -45,7 +44,13 @@ export function OTPInput({
     return phoneNumber.replace(/(\+234)(\d{3})(\d{3})(\d{4})/, '$1 $2 $3 $4')
   }
 
-  // Start resend timer
+  // Start resend timer with 10 minutes (600 seconds)
+  useEffect(() => {
+    // Initialize with 10 minutes countdown
+    setResendTimer(600)
+  }, [])
+
+  // Countdown timer
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => {
@@ -54,6 +59,13 @@ export function OTPInput({
       return () => clearTimeout(timer)
     }
   }, [resendTimer])
+
+  // Format timer display (MM:SS)
+  const formatTimer = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   // Handle OTP input change
   const handleOTPChange = useCallback((value: string, index: number) => {
@@ -134,7 +146,7 @@ export function OTPInput({
       const result = await phoneAuthService.sendOTP(phone)
       
       if (result.success) {
-        setResendTimer(30) // 30 second timer
+        setResendTimer(600) // Reset to 10 minutes
         setOTP(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
         
@@ -208,7 +220,7 @@ export function OTPInput({
         </View>
 
         <View style={styles.actionsContainer}>
-          <Button
+          <Pressable
             onPress={() => handleVerifyOTP()}
             disabled={!canVerify}
             style={[
@@ -224,7 +236,7 @@ export function OTPInput({
             ) : (
               <Text style={styles.verifyButtonText}>Verify Code</Text>
             )}
-          </Button>
+          </Pressable>
 
           <View style={styles.resendContainer}>
             {canResend ? (
@@ -246,7 +258,7 @@ export function OTPInput({
               </Pressable>
             ) : (
               <Text style={styles.timerText}>
-                Resend code in {resendTimer}s
+                Resend code in {formatTimer(resendTimer)}
               </Text>
             )}
           </View>
@@ -262,7 +274,7 @@ export function OTPInput({
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            The verification code expires in 5 minutes
+            The verification code expires in 10 minutes
           </Text>
         </View>
       </View>
