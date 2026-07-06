@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   ScrollView
 } from 'react-native'
-import { Button } from '@/components/ui/Button'
 import type { UserRole } from '@/lib/auth'
 
 interface RoleOption {
@@ -36,9 +35,7 @@ const roleOptions: RoleOption[] = [
     features: [
       'Book device repairs',
       'Track repair progress',
-      'Secure payment protection',
-      'Rate and review technicians',
-      'Chat with technicians'
+      'Secure payment protection'
     ]
   },
   {
@@ -49,9 +46,7 @@ const roleOptions: RoleOption[] = [
     features: [
       'Accept repair jobs',
       'Set your own pricing',
-      'Receive secure payments',
-      'Build your reputation',
-      'Manage your availability'
+      'Receive secure payments'
     ]
   }
 ]
@@ -82,6 +77,16 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
       setIsSubmitting(false)
     }
   }, [selectedRole, onRoleSelected, onError])
+
+  const getButtonText = () => {
+    if (!selectedRole) return 'Select a role to continue'
+    
+    if (selectedRole === 'customer') {
+      return '📱 Continue as Customer'
+    } else {
+      return '🔧 Continue as Technician'
+    }
+  }
 
   const canContinue = selectedRole && !loading && !isSubmitting
 
@@ -169,7 +174,7 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
             ⚠️ Important: Your role cannot be changed later
           </Text>
           
-          <Button
+          <Pressable
             onPress={handleContinue}
             disabled={!canContinue}
             style={[
@@ -184,10 +189,10 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
               </View>
             ) : (
               <Text style={styles.continueButtonText}>
-                Continue as {selectedRole ? roleOptions.find(r => r.role === selectedRole)?.title.toLowerCase() : 'User'}
+                {getButtonText()}
               </Text>
             )}
-          </Button>
+          </Pressable>
         </View>
       </View>
     </ScrollView>
@@ -233,8 +238,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF'
   },
   roleCardSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#EFF6FF'
+    borderColor: '#ff5722', // UrbanFix orange
+    backgroundColor: '#FFF4F2'
   },
   roleCardDisabled: {
     opacity: 0.6
@@ -268,7 +273,7 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   roleTitleSelected: {
-    color: '#1D4ED8'
+    color: '#ff5722' // UrbanFix orange
   },
   roleDescription: {
     fontSize: 16,
@@ -276,7 +281,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   roleDescriptionSelected: {
-    color: '#1E40AF'
+    color: '#E64A19' // Darker orange
   },
   radioButton: {
     width: 24,
@@ -288,12 +293,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   radioButtonSelected: {
-    borderColor: '#3B82F6'
+    borderColor: '#ff5722' // UrbanFix orange
   },
   radioButtonInner: {
     width: 12,
     height: 12,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ff5722', // UrbanFix orange
     borderRadius: 6
   },
   featuresContainer: {
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
     color: '#374151'
   },
   featuresTitleSelected: {
-    color: '#1D4ED8'
+    color: '#ff5722' // UrbanFix orange
   },
   featuresList: {
     gap: 8
@@ -327,7 +332,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   featureTextSelected: {
-    color: '#1E40AF'
+    color: '#E64A19' // Darker orange
   },
   footer: {
     gap: 16
@@ -343,20 +348,27 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
   continueButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ff5722', // UrbanFix emergency orange
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    shadowColor: '#ff5722',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4
   },
   continueButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-    opacity: 0.6
+    backgroundColor: '#D1D5DB',
+    opacity: 0.5,
+    shadowOpacity: 0
   },
   continueButtonText: {
     color: '#FFFFFF',
     fontSize: 17,
-    fontWeight: '600'
+    fontWeight: '700',
+    letterSpacing: 0.5
   },
   loadingContainer: {
     flexDirection: 'row',
