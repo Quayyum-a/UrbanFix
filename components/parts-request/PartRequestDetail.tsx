@@ -24,13 +24,13 @@ export function PartRequestDetail({ request, onClose }: PartRequestDetailProps) 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return theme.colors.warning
+        return colors.warning
       case 'approved':
-        return theme.colors.success
+        return colors.success
       case 'rejected':
-        return theme.colors.error
+        return colors.error
       default:
-        return theme.colors.textSecondary
+        return colors.textSecondary
     }
   }
 
@@ -147,7 +147,7 @@ export function PartRequestDetail({ request, onClose }: PartRequestDetailProps) 
 
           {request.status === 'approved' && request.added_part_id && (
             <View style={styles.approvedBox}>
-              <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
+              <Ionicons name="checkmark-circle" size={24} color={colors.success} />
               <View style={styles.approvedContent}>
                 <Text style={styles.approvedTitle}>Part Added to Catalogue</Text>
                 <Text style={styles.approvedText}>
@@ -159,7 +159,7 @@ export function PartRequestDetail({ request, onClose }: PartRequestDetailProps) 
 
           {request.status === 'rejected' && request.rejection_reason && (
             <View style={styles.rejectedBox}>
-              <Ionicons name="alert-circle" size={24} color={theme.colors.error} />
+              <Ionicons name="alert-circle" size={24} color={colors.error} />
               <View style={styles.rejectedContent}>
                 <Text style={styles.rejectedTitle}>Request Rejected</Text>
                 <Text style={styles.rejectedReason}>{request.rejection_reason}</Text>
@@ -172,7 +172,7 @@ export function PartRequestDetail({ request, onClose }: PartRequestDetailProps) 
       {/* Pending Status Message */}
       {request.status === 'pending' && (
         <View style={styles.pendingBox}>
-          <Ionicons name="time-outline" size={24} color={theme.colors.warning} />
+          <Ionicons name="time-outline" size={24} color={colors.warning} />
           <View style={styles.pendingContent}>
             <Text style={styles.pendingTitle}>Under Review</Text>
             <Text style={styles.pendingText}>
@@ -195,7 +195,7 @@ export function PartRequestDetail({ request, onClose }: PartRequestDetailProps) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   content: {
     padding: 20,
@@ -223,12 +223,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: colors.border
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text.primary,
     marginBottom: 16
   },
   infoRow: {
@@ -239,13 +239,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     flex: 1
   },
   value: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: colors.text.primary,
     flex: 1,
     textAlign: 'right'
   },
@@ -253,18 +253,18 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize'
   },
   descriptionBox: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12
   },
   descriptionText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: colors.text.primary,
     lineHeight: 20
   },
   approvedBox: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.success + '10',
+    backgroundColor: colors.success + '10',
     borderRadius: 8,
     padding: 12,
     gap: 12
@@ -275,17 +275,17 @@ const styles = StyleSheet.create({
   approvedTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.success,
+    color: colors.success,
     marginBottom: 4
   },
   approvedText: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: colors.text.primary,
     lineHeight: 18
   },
   rejectedBox: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.error + '10',
+    backgroundColor: colors.error + '10',
     borderRadius: 8,
     padding: 12,
     gap: 12
@@ -296,17 +296,17 @@ const styles = StyleSheet.create({
   rejectedTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: colors.error,
     marginBottom: 4
   },
   rejectedReason: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: colors.text.primary,
     lineHeight: 18
   },
   pendingBox: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.warning + '10',
+    backgroundColor: colors.warning + '10',
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -318,16 +318,16 @@ const styles = StyleSheet.create({
   pendingTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.warning,
+    color: colors.warning,
     marginBottom: 4
   },
   pendingText: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: colors.text.primary,
     lineHeight: 18
   },
   closeButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center'

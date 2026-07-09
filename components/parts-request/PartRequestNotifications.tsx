@@ -107,12 +107,12 @@ export function PartRequestNotifications({
     >
       <View style={[
         styles.iconContainer,
-        { backgroundColor: item.type === 'approved' ? theme.colors.success + '20' : theme.colors.warning + '20' }
+        { backgroundColor: item.type === 'approved' ? colors.success + '20' : colors.warning + '20' }
       ]}>
         <Ionicons
           name={item.type === 'approved' ? 'checkmark-circle' : 'information-circle'}
           size={24}
-          color={item.type === 'approved' ? theme.colors.success : theme.colors.warning}
+          color={item.type === 'approved' ? colors.success : colors.warning}
         />
       </View>
       
@@ -130,7 +130,7 @@ export function PartRequestNotifications({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="notifications-off-outline" size={64} color={theme.colors.textSecondary} />
+      <Ionicons name="notifications-off-outline" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyTitle}>No Notifications</Text>
       <Text style={styles.emptyText}>
         You'll see notifications here when your part requests are reviewed
@@ -143,7 +143,7 @@ export function PartRequestNotifications({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading notifications...</Text>
       </View>
     )
@@ -161,7 +161,7 @@ export function PartRequestNotifications({
           )}
           {onClose && (
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={theme.colors.text} />
+              <Ionicons name="close" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -215,7 +215,7 @@ export function NotificationBadge({ userId, onPress }: NotificationBadgeProps) {
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.badgeButton}>
-      <Ionicons name="notifications-outline" size={28} color={theme.colors.text} />
+      <Ionicons name="notifications-outline" size={28} color={colors.text.primary} />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
@@ -230,7 +230,7 @@ export function NotificationBadge({ userId, onPress }: NotificationBadgeProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   loadingContainer: {
     flex: 1,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12
   },
   header: {
@@ -250,13 +250,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     backgroundColor: '#fff'
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text
+    color: colors.text.primary
   },
   headerActions: {
     flexDirection: 'row',
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   markAllText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500'
   },
   closeButton: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   notificationUnread: {
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     borderWidth: 2
   },
   iconContainer: {
@@ -311,24 +311,24 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text.primary,
     marginBottom: 4
   },
   notificationBody: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 6,
     lineHeight: 18
   },
   notificationTime: {
     fontSize: 12,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     marginLeft: 8
   },
   emptyState: {
@@ -341,13 +341,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20
   },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,

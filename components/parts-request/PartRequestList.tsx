@@ -63,13 +63,13 @@ export function PartRequestList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return theme.colors.warning
+        return colors.warning
       case 'approved':
-        return theme.colors.success
+        return colors.success
       case 'rejected':
-        return theme.colors.error
+        return colors.error
       default:
-        return theme.colors.textSecondary
+        return colors.textSecondary
     }
   }
 
@@ -124,13 +124,13 @@ export function PartRequestList({
 
       <View style={styles.requestDetails}>
         <View style={styles.detailRow}>
-          <Ionicons name="pricetag-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons name="pricetag-outline" size={14} color={colors.textSecondary} />
           <Text style={styles.detailText}>
             {item.repair_category.replace(/_/g, ' ')}
           </Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="cash-outline" size={14} color={theme.colors.textSecondary} />
+          <Ionicons name="cash-outline" size={14} color={colors.textSecondary} />
           <Text style={styles.detailText}>
             {PartRequestService.formatPrice(item.estimated_price)}
           </Text>
@@ -141,13 +141,13 @@ export function PartRequestList({
         <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
         {item.status === 'approved' && item.added_part_id && (
           <View style={styles.addedBadge}>
-            <Ionicons name="checkmark" size={12} color={theme.colors.success} />
+            <Ionicons name="checkmark" size={12} color={colors.success} />
             <Text style={styles.addedText}>Added to catalogue</Text>
           </View>
         )}
         {item.status === 'rejected' && (
           <View style={styles.rejectedBadge}>
-            <Ionicons name="alert-circle-outline" size={12} color={theme.colors.error} />
+            <Ionicons name="alert-circle-outline" size={12} color={colors.error} />
             <Text style={styles.rejectedText}>See reason</Text>
           </View>
         )}
@@ -157,7 +157,7 @@ export function PartRequestList({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="folder-open-outline" size={64} color={theme.colors.textSecondary} />
+      <Ionicons name="folder-open-outline" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyTitle}>No Requests Yet</Text>
       <Text style={styles.emptyText}>
         {filterStatus
@@ -170,7 +170,7 @@ export function PartRequestList({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading requests...</Text>
       </View>
     )
@@ -187,7 +187,7 @@ export function PartRequestList({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={theme.colors.primary}
+          tintColor={colors.primary}
         />
       }
     />
