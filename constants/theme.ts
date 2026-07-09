@@ -216,3 +216,10 @@ export const touchTargets = {
   buttonHeight: 56,
   inputHeight: 56,
 } as const;
+
+// Focus ring style for visible keyboard/screen-reader focus indicators (WCAG 2.1 AA — Requirement 9.7)
+// Uses Emergency Orange so it is visible on both dark and light backgrounds
+export const focusRing = {
+  borderWidth: 2,
+  borderColor: colors.secondary, // Emergency Orange (#FF5722)
+} as const;

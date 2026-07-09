@@ -79,15 +79,34 @@ export class JWTService {
         return
       }
 
-      // Get user role from database
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
+      // Get user role from database with retry logic
+      let userData = null
+      let error = null
+      let retries = 3
+      
+      while (retries > 0 && !userData) {
+        const result = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        userData = result.data
+        error = result.error
+        
+        if (!error && userData) {
+          break
+        }
+        
+        // Wait 500ms before retry (gives time for database to sync)
+        await new Promise(resolve => setTimeout(resolve, 500))
+        retries--
+      }
 
       if (error || !userData) {
-        console.error('Failed to fetch user role:', error)
+        console.error('Failed to fetch user role after retries:', error)
+        // Don't return early - the user might be in the middle of registration
+        // Just log the error and continue without setting the role
         return
       }
 
@@ -162,22 +181,32 @@ export class JWTService {
    * Get current session info
    */
   public async getCurrentSession(): Promise<SessionInfo | null> {
+    console.log('JWTService: getCurrentSession called')
+    
     if (this.currentSession) {
+      console.log('JWTService: Returning cached session')
       return this.currentSession
     }
 
     // Try to restore from storage
     try {
+      console.log('JWTService: Attempting to restore from AsyncStorage...')
       const storedSession = await AsyncStorage.getItem(this.SESSION_STORAGE_KEY)
       if (storedSession) {
+        console.log('JWTService: Found stored session, parsing...')
         const sessionInfo: SessionInfo = JSON.parse(storedSession)
         
         // Validate session is still valid
+        console.log('JWTService: Validating stored session...')
         const validation = await this.validateSession(sessionInfo)
         if (validation.isValid && validation.session) {
+          console.log('JWTService: Stored session is valid')
           this.currentSession = validation.session
           return validation.session
         }
+        console.log('JWTService: Stored session is invalid')
+      } else {
+        console.log('JWTService: No stored session found')
       }
     } catch (error) {
       console.error('Restore session error:', error)
@@ -185,15 +214,19 @@ export class JWTService {
 
     // Get fresh session from Supabase
     try {
+      console.log('JWTService: Getting fresh session from Supabase...')
       const { data: { session }, error } = await supabase.auth.getSession()
       if (session && !error) {
+        console.log('JWTService: Fresh session found from Supabase')
         await this.handleSessionUpdate(session)
         return this.currentSession
       }
+      console.log('JWTService: No fresh session from Supabase')
     } catch (error) {
       console.error('Get fresh session error:', error)
     }
 
+    console.log('JWTService: Returning null - no session available')
     return null
   }
 

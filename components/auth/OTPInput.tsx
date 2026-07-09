@@ -44,6 +44,9 @@ export function OTPInput({
     return phoneNumber.replace(/(\+234)(\d{3})(\d{3})(\d{4})/, '$1 $2 $3 $4')
   }
 
+  // Check if this is a test number
+  const isTestNumber = phone === '+2348066025051' || phone === '+2348012345678'
+
   // Start resend timer with 10 minutes (600 seconds)
   useEffect(() => {
     // Initialize with 10 minutes countdown
@@ -110,17 +113,34 @@ export function OTPInput({
       
       const codeToVerify = otpCode || otp.join('')
       
+      console.log('🔐 [OTPInput] Starting verification...')
+      console.log('📱 Phone:', phone)
+      console.log('🔢 OTP:', codeToVerify)
+      
       if (codeToVerify.length !== 6) {
+        console.log('❌ [OTPInput] Invalid length:', codeToVerify.length)
         setError('Please enter all 6 digits')
+        setIsLoading(false)
         return
       }
 
-      const result = await phoneAuthService.verifyOTP(phone, codeToVerify)
+      console.log('📤 [OTPInput] Calling phoneAuthService.verifyOTP...')
+      
+      // Add timeout to prevent hanging
+      const verifyPromise = phoneAuthService.verifyOTP(phone, codeToVerify)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Verification timeout')), 30000) // 30 second timeout
+      })
+      
+      const result = await Promise.race([verifyPromise, timeoutPromise]) as any
+      console.log('📥 [OTPInput] Result:', JSON.stringify(result, null, 2))
       
       if (result.success) {
+        console.log('✅ [OTPInput] Verification successful!')
         onVerificationSuccess()
       } else {
         const errorMessage = result.error || 'Invalid verification code'
+        console.error('❌ [OTPInput] Verification failed:', errorMessage)
         setError(errorMessage)
         onError(errorMessage)
         
@@ -128,12 +148,20 @@ export function OTPInput({
         setOTP(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       }
-    } catch (error) {
-      const errorMessage = 'Network error. Please try again.'
+    } catch (error: any) {
+      console.error('❌ [OTPInput] Unexpected error:', error)
+      const errorMessage = error.message === 'Verification timeout' 
+        ? 'Verification took too long. Please try again or check your internet connection.'
+        : 'Network error. Please try again.'
       setError(errorMessage)
       onError(errorMessage)
+      
+      // Clear OTP inputs on error
+      setOTP(['', '', '', '', '', ''])
+      inputRefs.current[0]?.focus()
     } finally {
       setIsLoading(false)
+      console.log('🏁 [OTPInput] Verification complete, loading set to false')
     }
   }, [otp, phone, onVerificationSuccess, onError])
 
@@ -186,6 +214,13 @@ export function OTPInput({
             We've sent a 6-digit code to{'\n'}
             <Text style={styles.phoneNumber}>{formatPhoneForDisplay(phone)}</Text>
           </Text>
+          {isTestNumber && (
+            <View style={styles.testModeContainer}>
+              <Text style={styles.testModeText}>
+                🧪 Test Mode: Use your configured test OTP
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.otpContainer}>
@@ -264,7 +299,10 @@ export function OTPInput({
           </View>
 
           <Pressable
-            onPress={onBack}
+            onPress={() => {
+              console.log('Change phone number button pressed')
+              onBack()
+            }}
             style={styles.backButton}
             disabled={isLoading || loading}
           >
@@ -312,6 +350,21 @@ const styles = StyleSheet.create({
   phoneNumber: {
     fontWeight: '600',
     color: '#111827'
+  },
+  testModeContainer: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFF4E6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFB020'
+  },
+  testModeText: {
+    fontSize: 14,
+    color: '#B45309',
+    fontWeight: '600',
+    textAlign: 'center'
   },
   otpContainer: {
     marginBottom: 32
@@ -403,12 +456,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     alignItems: 'center',
-    paddingVertical: 12
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    minHeight: 44, // Accessibility compliance
   },
   backText: {
     fontSize: 16,
     color: '#ff5722', // UrbanFix emergency orange
-    fontWeight: '500'
+    fontWeight: '600'
   },
   footer: {
     alignItems: 'center',

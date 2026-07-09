@@ -1,7 +1,7 @@
 import React from 'react'
-import { View, Text, StyleSheet, Pressable, ViewStyle, Image, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ViewStyle, ScrollView } from 'react-native'
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme'
-import { StarRating, Badge } from '@/components/ui'
+import { StarRating, Badge, OptimizedImage } from '@/components/ui'
 
 interface TechnicianCardProps {
   id: string
@@ -32,7 +32,7 @@ interface TechnicianCardProps {
  * - Availability status indicator
  * - Specialty tags as pill-shaped badges
  */
-export function TechnicianCard({
+export const TechnicianCard = React.memo(function TechnicianCard({
   id,
   name,
   rating,
@@ -70,10 +70,11 @@ export function TechnicianCard({
         {/* Avatar Section */}
         <View style={styles.avatarContainer}>
           {avatarUrl ? (
-            <Image
+            <OptimizedImage
               source={{ uri: avatarUrl }}
               style={styles.avatar}
-              defaultSource={require('@/assets/images/default-avatar.png')}
+              fallbackIcon="person-circle-outline"
+              showSkeleton
             />
           ) : (
             <View style={styles.avatar}>
@@ -148,7 +149,7 @@ export function TechnicianCard({
       )}
     </Pressable>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {

@@ -184,32 +184,41 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
   
   initialize: async () => {
+    console.log('AuthStore: Starting initialization...')
+    
+    // Set initialized immediately so app doesn't hang
+    set({ loading: false, initialized: true, authStep: 'phone' })
+    console.log('AuthStore: Initialized flag set to true (optimistic)')
+    
     try {
-      set({ loading: true, initialized: false })
-      
-      // Get current session from JWT service
+      // Get current session from JWT service in background
+      console.log('AuthStore: Getting current session from JWT service...')
       const session = await jwtService.getCurrentSession()
       
       if (session) {
+        console.log('AuthStore: Session found, role:', session.role)
         set({ 
           user: session.user,
           role: session.role
         })
         
         // Get user profile
+        console.log('AuthStore: Fetching user profile...')
         const userProfile = await phoneAuthService.getCurrentUser()
         if (userProfile) {
+          console.log('AuthStore: User profile found')
           set({ userProfile, authStep: 'complete' })
         }
         
         // Update role service
         roleService.setRole(session.role)
       } else {
-        set({ authStep: 'phone' })
+        console.log('AuthStore: No session found, user needs to login')
       }
       
       // Listen for auth changes
       supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('AuthStore: Auth state change event:', event)
         try {
           if (event === 'SIGNED_IN' && session?.user) {
             set({ user: session.user })
@@ -238,11 +247,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           console.error('Auth state change error:', error)
         }
       })
+      
+      console.log('AuthStore: Background initialization complete')
     } catch (error) {
       console.error('Error initializing auth:', error)
       set({ error: 'Failed to initialize authentication' })
-    } finally {
-      set({ loading: false, initialized: true })
     }
   },
   

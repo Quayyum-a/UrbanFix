@@ -10,7 +10,7 @@ import {
   Animated,
   Platform,
 } from 'react-native'
-import { colors, typography, radius, spacing, touchTargets } from '@/constants/theme'
+import { colors, typography, radius, spacing, touchTargets, focusRing } from '@/constants/theme'
 
 interface InputProps extends TextInputProps {
   label?: string
@@ -81,7 +81,7 @@ export function Input({
   const labelColor = error
     ? colors.error
     : isFocused
-    ? colors.primary
+    ? colors.secondary  // Emergency Orange — matches focus ring for visual consistency (Req 9.7)
     : colors.text.secondary
 
   return (
@@ -169,8 +169,7 @@ const styles = StyleSheet.create({
   },
 
   inputWrapperFocused: {
-    borderColor: colors.primary,
-    borderWidth: 2,
+    ...focusRing, // 2px Emergency Orange border — high contrast on both dark and light backgrounds (Req 9.7)
   },
 
   inputWrapperError: {

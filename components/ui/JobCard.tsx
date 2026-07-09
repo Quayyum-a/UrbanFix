@@ -44,7 +44,7 @@ const deviceIcons: Record<DeviceType | string, string> = {
  * - Creation date
  * - Progress indicator for active repairs
  */
-export function JobCard({
+export const JobCard = React.memo(function JobCard({
   id,
   deviceType = 'other',
   deviceBrand,
@@ -124,7 +124,7 @@ export function JobCard({
       </View>
     </Pressable>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {

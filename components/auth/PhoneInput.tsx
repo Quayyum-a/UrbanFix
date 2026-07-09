@@ -107,11 +107,23 @@ export function PhoneInput({
       if (result.success) {
         console.log('✅ [PhoneInput] OTP sent successfully')
         onOTPSent(fullPhone)
-        Alert.alert(
-          'Verification Code Sent',
-          `We've sent a 6-digit code to ${fullPhone}. Please enter it below.`,
-          [{ text: 'OK' }]
-        )
+        
+        // Check if this is a test number (starts with specific test prefixes)
+        const isTestNumber = fullPhone === '+2348066025051' || fullPhone === '+2348012345678'
+        
+        if (isTestNumber) {
+          Alert.alert(
+            'Test Mode',
+            'This is a test number. Use your configured test OTP code.',
+            [{ text: 'OK' }]
+          )
+        } else {
+          Alert.alert(
+            'Verification Code Sent',
+            `We've sent a 6-digit code to ${fullPhone}. It may take 1-2 minutes to arrive. Check your messages.`,
+            [{ text: 'OK' }]
+          )
+        }
       } else {
         const errorMessage = result.error || 'Failed to send verification code'
         console.error('❌ [PhoneInput] Send failed:', errorMessage)
@@ -159,7 +171,7 @@ export function PhoneInput({
               ]}
               value={phoneNumber}
               onChangeText={handlePhoneChange}
-              placeholder="8066025051"
+              placeholder="810 234 5678"
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
               autoFocus

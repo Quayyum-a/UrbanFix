@@ -106,54 +106,50 @@ export default function LoginScreen() {
     }
 
     try {
+      console.log('📝 [Login] Completing profile:', { fullName, role: selectedRole })
       const result = await completeRegistration(phoneNumber, fullName, selectedRole)
       
       if (result.success) {
-        // Show success message
-        Alert.alert(
-          'Welcome to UrbanFix!',
-          `Your ${selectedRole} account has been created successfully.`,
-          [
-            {
-              text: 'Get Started',
-              onPress: () => {
-                // Redirect based on role
-                switch (selectedRole) {
-                  case 'customer':
-                    router.replace('/customer')
-                    break
-                  case 'technician':
-                    router.replace('/technician')
-                    break
-                  default:
-                    router.replace('/')
-                    break
-                }
-              }
-            }
-          ]
-        )
+        console.log('✅ [Login] Registration successful')
+        
+        // For customers, go to location permission screen
+        // For technicians, go directly to their home
+        if (selectedRole === 'customer') {
+          console.log('📍 [Login] Navigating to location permission')
+          router.replace('/auth/location-permission')
+        } else if (selectedRole === 'technician') {
+          console.log('🔧 [Login] Navigating to technician home')
+          router.replace('/technician')
+        } else {
+          router.replace('/')
+        }
       } else {
         handleError(result.error || 'Registration failed')
       }
     } catch (error) {
+      console.error('❌ [Login] Profile completion error:', error)
       handleError('Network error during registration')
     }
   }, [selectedRole, phoneNumber, completeRegistration, router])
 
   // Handle back navigation
   const handleBack = useCallback(() => {
+    console.log('handleBack called, currentStep:', currentStep)
     switch (currentStep) {
       case 'otp':
+        console.log('Going back to phone input')
         setCurrentStep('phone')
         break
       case 'role-selection':
+        console.log('Going back to OTP')
         setCurrentStep('otp')
         break
       case 'profile-setup':
+        console.log('Going back to role selection')
         setCurrentStep('role-selection')
         break
       default:
+        console.log('No back action for step:', currentStep)
         break
     }
     clearError()

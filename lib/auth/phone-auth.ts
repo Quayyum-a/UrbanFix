@@ -87,6 +87,22 @@ export class PhoneAuthService {
       const formattedPhone = validation.formatted!
       console.log('✅ [Phone Auth] Phone validated:', formattedPhone)
       
+      // Check if this is a test number - bypass Supabase completely for dev
+      const TEST_NUMBERS: Record<string, string> = {
+        '+2348066025051': '123456',
+        '+2348012345678': '654321'
+      }
+      
+      const isTestNumber = formattedPhone in TEST_NUMBERS
+      
+      if (isTestNumber) {
+        console.log('🧪 [Phone Auth] Test number detected - bypassing SMS send for dev mode')
+        console.log('✅ [Phone Auth] Dev mode OTP ready immediately!')
+        return {
+          success: true
+        }
+      }
+      
       // Check rate limiting
       const rateLimitCheck = await this.otpService.checkRateLimit(formattedPhone)
       if (!rateLimitCheck.allowed) {
@@ -141,9 +157,14 @@ export class PhoneAuthService {
    */
   public async verifyOTP(phone: string, otp: string): Promise<AuthResult> {
     try {
+      console.log('🔐 [Phone Auth] Starting OTP verification...')
+      console.log('📱 [Phone Auth] Phone:', phone)
+      console.log('🔢 [Phone Auth] OTP:', otp)
+      
       // Validate inputs
       const validation = this.validatePhoneNumber(phone)
       if (!validation.isValid) {
+        console.error('❌ [Phone Auth] Phone validation failed:', validation.error)
         return {
           success: false,
           error: validation.error
@@ -151,6 +172,7 @@ export class PhoneAuthService {
       }
 
       if (!otp || otp.length !== 6 || !/^[0-9]{6}$/.test(otp)) {
+        console.error('❌ [Phone Auth] OTP validation failed')
         return {
           success: false,
           error: 'Please enter a valid 6-digit verification code'
@@ -158,10 +180,47 @@ export class PhoneAuthService {
       }
 
       const formattedPhone = validation.formatted!
+      console.log('✅ [Phone Auth] Phone formatted:', formattedPhone)
 
+      // Check if this is a test number - bypass real verification for development
+      const TEST_NUMBERS: Record<string, string> = {
+        '+2348066025051': '123456',
+        '+2348012345678': '654321'
+      }
+      
+      const isTestNumber = formattedPhone in TEST_NUMBERS
+      const expectedOTP = TEST_NUMBERS[formattedPhone]
+      
+      if (isTestNumber) {
+        console.log('🧪 [Phone Auth] Test number detected - using dev mode verification')
+        
+        if (otp === expectedOTP) {
+          console.log('✅ [Phone Auth] Test OTP matches - bypassing all Supabase calls for dev mode')
+          
+          // For test numbers, completely bypass Supabase and just succeed immediately
+          // This allows navigation through the app for testing other features
+          
+          console.log('ℹ️ [Phone Auth] Dev mode: New user - needs role selection')
+          return {
+            success: true,
+            session: null as any, // Mock session for dev
+            needsRoleSelection: true
+          }
+        } else {
+          console.error('❌ [Phone Auth] Test OTP mismatch - expected:', expectedOTP, 'got:', otp)
+          return {
+            success: false,
+            error: `Invalid test OTP. Expected: ${expectedOTP}`
+          }
+        }
+      }
+
+      // For non-test numbers, proceed with normal Supabase verification
       // Check OTP rate limiting
+      console.log('⏱️ [Phone Auth] Checking rate limit...')
       const rateLimitCheck = await this.otpService.checkOTPVerificationLimit(formattedPhone)
       if (!rateLimitCheck.allowed) {
+        console.error('❌ [Phone Auth] Rate limit exceeded:', rateLimitCheck.error)
         return {
           success: false,
           error: rateLimitCheck.error
@@ -169,14 +228,45 @@ export class PhoneAuthService {
       }
 
       // Verify OTP with Supabase Auth
-      const { data, error } = await supabase.auth.verifyOtp({
+      console.log('📤 [Phone Auth] Calling Supabase verifyOtp...')
+      console.log('🌐 [Phone Auth] Supabase URL:', supabase.supabaseUrl)
+      
+      const startTime = Date.now()
+      
+      // Add timeout to Supabase call
+      const verifyPromise = supabase.auth.verifyOtp({
         phone: formattedPhone,
         token: otp,
         type: 'sms'
+      }).then(result => {
+        const elapsed = Date.now() - startTime
+        console.log(`⏱️ [Phone Auth] Supabase call took ${elapsed}ms`)
+        return result
+      }).catch(error => {
+        const elapsed = Date.now() - startTime
+        console.log(`⏱️ [Phone Auth] Supabase call failed after ${elapsed}ms`)
+        throw error
+      })
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          console.error(`⏱️ [Phone Auth] Timeout triggered after 15000ms`)
+          reject(new Error('Supabase verification timeout'))
+        }, 15000) // 15 second timeout
+      })
+      
+      console.log('⏳ [Phone Auth] Waiting for response...')
+      const response = await Promise.race([verifyPromise, timeoutPromise]) as any
+      const { data, error } = response
+      
+      console.log('📥 [Phone Auth] Supabase response:', { 
+        hasUser: !!data?.user, 
+        hasSession: !!data?.session, 
+        error: error ? JSON.stringify(error) : null 
       })
 
       if (error) {
-        console.error('OTP verification error:', error)
+        console.error('❌ [Phone Auth] OTP verification error:', error)
         
         // Track failed verification attempt
         await this.otpService.recordFailedVerification(formattedPhone)
@@ -188,12 +278,15 @@ export class PhoneAuthService {
       }
 
       if (!data.user || !data.session) {
+        console.error('❌ [Phone Auth] Missing user or session in response')
         return {
           success: false,
           error: 'Authentication failed. Please try again.'
         }
       }
 
+      console.log('✅ [Phone Auth] OTP verified, checking user record...')
+      
       // Check if user exists in our users table
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -201,8 +294,13 @@ export class PhoneAuthService {
         .eq('phone', formattedPhone)
         .single()
 
+      console.log('📥 [Phone Auth] User lookup result:', { 
+        found: !!userData, 
+        error: userError ? userError.code : null 
+      })
+
       if (userError && userError.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('User lookup error:', userError)
+        console.error('❌ [Phone Auth] User lookup error:', userError)
         return {
           success: false,
           error: 'Database error. Please try again.'
@@ -211,6 +309,7 @@ export class PhoneAuthService {
 
       // If user doesn't exist, they need to complete registration with role selection
       if (!userData) {
+        console.log('ℹ️ [Phone Auth] New user - needs role selection')
         return {
           success: true,
           session: data.session,
@@ -218,6 +317,8 @@ export class PhoneAuthService {
         }
       }
 
+      console.log('✅ [Phone Auth] Existing user found, role:', userData.role)
+      
       // Clear rate limiting on successful verification
       await this.otpService.clearRateLimit(formattedPhone)
 
@@ -227,8 +328,17 @@ export class PhoneAuthService {
         user: userData,
         needsRoleSelection: false
       }
-    } catch (error) {
-      console.error('Verify OTP error:', error)
+    } catch (error: any) {
+      console.error('❌ [Phone Auth] Unexpected verify OTP error:', error)
+      
+      // Check if it's a timeout error
+      if (error.message === 'Supabase verification timeout') {
+        return {
+          success: false,
+          error: 'Verification is taking too long. Please check your internet connection and try again.'
+        }
+      }
+      
       return {
         success: false,
         error: 'Network error. Please check your connection and try again.'
@@ -246,6 +356,8 @@ export class PhoneAuthService {
     role: 'customer' | 'technician'
   ): Promise<AuthResult> {
     try {
+      console.log('📝 [Phone Auth] Starting registration:', { phone, fullName, role })
+      
       const validation = this.validatePhoneNumber(phone)
       if (!validation.isValid) {
         return {
@@ -271,6 +383,39 @@ export class PhoneAuthService {
       const formattedPhone = validation.formatted!
       const trimmedName = fullName.trim()
 
+      // Check if this is a test number - use dev mode
+      const TEST_NUMBERS: Record<string, string> = {
+        '+2348066025051': '123456',
+        '+2348012345678': '654321'
+      }
+      
+      const isTestNumber = formattedPhone in TEST_NUMBERS
+      
+      if (isTestNumber) {
+        console.log('🧪 [Phone Auth] Test number - using dev mode registration')
+        
+        // For dev mode, create a mock user ID
+        const mockUserId = `dev-user-${formattedPhone.replace('+', '')}`
+        
+        const mockUserData = {
+          id: mockUserId,
+          phone: formattedPhone,
+          role: role,
+          full_name: trimmedName,
+          avatar_url: null,
+          created_at: new Date().toISOString()
+        }
+        
+        console.log('✅ [Phone Auth] Dev mode registration complete')
+        return {
+          success: true,
+          session: null as any, // Mock session
+          user: mockUserData as any,
+          needsRoleSelection: false
+        }
+      }
+
+      // For real numbers, proceed with Supabase
       // Get current session to ensure user is authenticated
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {

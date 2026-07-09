@@ -8,8 +8,8 @@
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0A1628"
+      "resizeMode": "cover",
+      "backgroundColor": "#031636"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -25,8 +25,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon copy.png",
-        "backgroundColor": "#0A1628"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#031636"
       },
       "package": "com.urbanfix.app",
       "permissions": [
@@ -38,7 +38,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon copy.png",
+      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
