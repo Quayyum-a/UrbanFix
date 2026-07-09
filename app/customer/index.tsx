@@ -387,6 +387,9 @@ export default function CustomerHomeScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.techniciansList}
         ItemSeparatorComponent={() => <View style={styles.technicianSeparator} />}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={4}
+        windowSize={5}
         renderItem={({ item }) => (
           <TechnicianCard
             id={item.id}
@@ -418,6 +421,8 @@ export default function CustomerHomeScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

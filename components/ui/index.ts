@@ -31,3 +31,4 @@ export {
 export { TypingIndicator, type TypingIndicatorProps } from './TypingIndicator'
 export { AccessibilityWrapper, type AccessibilityWrapperProps } from './AccessibilityWrapper'
 export { OptimizedImage, type OptimizedImageProps } from './OptimizedImage'
+export { KeyboardDismissView } from './KeyboardDismissView'
