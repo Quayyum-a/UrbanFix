@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12
   },
   requestCard: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -236,12 +236,12 @@ const styles = StyleSheet.create({
   partName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text.primary,
     marginBottom: 4
   },
   deviceInfo: {
     fontSize: 14,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   statusBadge: {
     flexDirection: 'row',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textTransform: 'capitalize'
   },
   requestFooter: {
@@ -276,11 +276,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border
+    borderTopColor: colors.border
   },
   dateText: {
     fontSize: 12,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   addedBadge: {
     flexDirection: 'row',
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   addedText: {
     fontSize: 12,
-    color: theme.colors.success,
+    color: colors.success,
     fontWeight: '500'
   },
   rejectedBadge: {
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   },
   rejectedText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: colors.error,
     fontWeight: '500'
   },
   emptyState: {
@@ -312,13 +312,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text.primary,
     marginTop: 16,
     marginBottom: 8
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20
   }
