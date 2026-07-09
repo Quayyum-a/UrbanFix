@@ -19,13 +19,13 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import theme from '@/constants/theme'
 import { PartRequestService } from '@/lib/services/part-request-service'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@/stores/authStore'
 import type { PartRequestWithDetails } from '@/types/parts-request.types'
 
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
 
 export default function PartRequestsManagementScreen() {
-  const { user } = useAuthStore()
+  const userProfile = useAuthStore(state => state.userProfile)
   const [requests, setRequests] = useState<PartRequestWithDetails[]>([])
   const [filteredRequests, setFilteredRequests] = useState<PartRequestWithDetails[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,14 +83,14 @@ export default function PartRequestsManagementScreen() {
       return
     }
 
-    if (!selectedRequest || !user) return
+    if (!selectedRequest || !userProfile) return
 
     try {
       setProcessing(true)
 
       const priceInKobo = PartRequestService.nairaToKobo(parseFloat(finalPrice))
       
-      const result = await PartRequestService.approveRequest(user.id, {
+      const result = await PartRequestService.approveRequest(userProfile.id, {
         request_id: selectedRequest.id,
         final_price: priceInKobo
       })
@@ -123,12 +123,12 @@ export default function PartRequestsManagementScreen() {
       return
     }
 
-    if (!selectedRequest || !user) return
+    if (!selectedRequest || !userProfile) return
 
     try {
       setProcessing(true)
 
-      const result = await PartRequestService.rejectRequest(user.id, {
+      const result = await PartRequestService.rejectRequest(userProfile.id, {
         request_id: selectedRequest.id,
         rejection_reason: rejectionReason.trim()
       })

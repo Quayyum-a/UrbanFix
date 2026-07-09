@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import theme from '@/constants/theme'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@/stores/authStore'
 
 interface TechnicianVerification {
   id: string
@@ -44,7 +44,7 @@ interface TechnicianVerification {
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
 
 export default function TechnicianVerificationsScreen() {
-  const { user } = useAuthStore()
+  const userProfile = useAuthStore(state => state.userProfile)
   const [verifications, setVerifications] = useState<TechnicianVerification[]>([])
   const [filteredVerifications, setFilteredVerifications] = useState<TechnicianVerification[]>([])
   const [loading, setLoading] = useState(true)

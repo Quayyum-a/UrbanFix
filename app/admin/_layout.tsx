@@ -5,15 +5,15 @@ import React from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import theme from '@/constants/theme'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@/stores/authStore'
 import { Redirect } from 'expo-router'
 
 export default function AdminLayout() {
-  const { user } = useAuthStore()
+  const userProfile = useAuthStore(state => state.userProfile)
 
   // Protect admin routes - only allow admin role
-  if (!user || user.role !== 'admin') {
-    return <Redirect href="/auth/login" />
+  if (!userProfile || userProfile.role !== 'admin') {
+    return <Redirect href="/" />
   }
 
   return (
