@@ -14,7 +14,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import theme from '@/constants/theme'
+import { colors, spacing, radius, shadows } from '@/constants/theme'
 import { supabase } from '@/lib/supabase'
 
 interface DashboardStats {
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     )
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor={theme.colors.primary}
+          tintColor={colors.primary}
         />
       }
     >
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
           activeOpacity={0.7}
         >
           <View style={styles.actionIcon}>
-            <Ionicons name="shield-checkmark" size={24} color={theme.colors.error} />
+            <Ionicons name="shield-checkmark" size={24} color={colors.error} />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Technician Verifications</Text>
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
           activeOpacity={0.7}
         >
           <View style={styles.actionIcon}>
-            <Ionicons name="cube" size={24} color={theme.colors.primary} />
+            <Ionicons name="cube" size={24} color={colors.primary} />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Part Requests</Text>
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
             <Ionicons 
               name="alert-circle" 
               size={24} 
-              color={stats.active_disputes > 0 ? theme.colors.error : theme.colors.warning} 
+              color={stats.active_disputes > 0 ? colors.error : colors.warning} 
             />
           </View>
           <View style={styles.actionContent}>
@@ -214,32 +214,32 @@ export default function AdminDashboard() {
         
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-              <Ionicons name="briefcase-outline" size={28} color={theme.colors.primary} />
+            <View style={[styles.statIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="briefcase-outline" size={28} color={colors.primary} />
             </View>
             <Text style={styles.statValue}>{stats.total_jobs}</Text>
             <Text style={styles.statLabel}>Total Jobs</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: theme.colors.success + '20' }]}>
-              <Ionicons name="cash-outline" size={28} color={theme.colors.success} />
+            <View style={[styles.statIcon, { backgroundColor: colors.success + '20' }]}>
+              <Ionicons name="cash-outline" size={28} color={colors.success} />
             </View>
             <Text style={styles.statValue}>{formatCurrency(stats.total_revenue)}</Text>
             <Text style={styles.statLabel}>Total Revenue</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: theme.colors.secondary + '20' }]}>
-              <Ionicons name="construct-outline" size={28} color={theme.colors.secondary} />
+            <View style={[styles.statIcon, { backgroundColor: colors.secondary + '20' }]}>
+              <Ionicons name="construct-outline" size={28} color={colors.secondary} />
             </View>
             <Text style={styles.statValue}>{stats.active_technicians}</Text>
             <Text style={styles.statLabel}>Active Technicians</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: theme.colors.info + '20' }]}>
-              <Ionicons name="people-outline" size={28} color={theme.colors.info} />
+            <View style={[styles.statIcon, { backgroundColor: colors.info + '20' }]}>
+              <Ionicons name="people-outline" size={28} color={colors.info} />
             </View>
             <Text style={styles.statValue}>{stats.active_customers}</Text>
             <Text style={styles.statLabel}>Active Customers</Text>
@@ -255,18 +255,18 @@ export default function AdminDashboard() {
           style={styles.quickActionButton}
           onPress={() => router.push('/admin/analytics')}
         >
-          <Ionicons name="bar-chart" size={20} color={theme.colors.primary} />
+          <Ionicons name="bar-chart" size={20} color={colors.primary} />
           <Text style={styles.quickActionText}>View Detailed Analytics</Text>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => router.push('/admin/verifications')}
         >
-          <Ionicons name="shield-checkmark" size={20} color={theme.colors.primary} />
+          <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
           <Text style={styles.quickActionText}>Manage Technicians</Text>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   content: {
     padding: 20,
@@ -286,11 +286,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   loadingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12
   },
   header: {
@@ -299,12 +299,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 4
   },
   headerSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   section: {
     marginBottom: 32
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 16
   },
   actionCard: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -331,14 +331,14 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   urgentCard: {
-    borderColor: theme.colors.error,
+    borderColor: colors.error,
     borderWidth: 2
   },
   actionIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12
@@ -349,15 +349,15 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 2
   },
   actionDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   actionBadge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
     borderRadius: 16,
     minWidth: 32,
     height: 32,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -401,12 +401,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 4
   },
   statLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center'
   },
   quickActionButton: {
@@ -417,13 +417,13 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: colors.border
   },
   quickActionText: {
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.text,
+    color: colors.text,
     marginLeft: 12
   }
 })

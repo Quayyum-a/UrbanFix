@@ -14,7 +14,7 @@ import {
 } from 'react-native'
 import { Stack } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors, spacing, radius } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
 import { PartRequestForm, PartRequestList, PartRequestDetail, NotificationBadge, PartRequestNotifications } from '@/components/parts-request'
 import type { PartRequest, PartRequestNotificationDB } from '@/types/parts-request.types'
@@ -77,7 +77,7 @@ export default function PartRequestsScreen() {
                 onPress={() => setShowForm(true)}
                 style={styles.headerButton}
               >
-                <Ionicons name="add-circle" size={28} color={theme.colors.primary} />
+                <Ionicons name="add-circle" size={28} color={colors.primary} />
               </TouchableOpacity>
             </View>
           )
@@ -99,7 +99,7 @@ export default function PartRequestsScreen() {
               <Ionicons
                 name={tab.icon as any}
                 size={20}
-                color={activeTab === tab.key ? theme.colors.primary : theme.colors.textSecondary}
+                color={activeTab === tab.key ? colors.primary : colors.textSecondary}
               />
               <Text
                 style={[
@@ -144,7 +144,7 @@ export default function PartRequestsScreen() {
               onPress={() => setShowForm(false)}
               style={styles.modalCloseButton}
             >
-              <Ionicons name="close" size={28} color={theme.colors.text} />
+              <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>New Part Request</Text>
             <View style={{ width: 28 }} />
@@ -171,7 +171,7 @@ export default function PartRequestsScreen() {
               onPress={() => setSelectedRequest(null)}
               style={styles.modalCloseButton}
             >
-              <Ionicons name="close" size={28} color={theme.colors.text} />
+              <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Request Details</Text>
             <View style={{ width: 28 }} />
@@ -208,7 +208,7 @@ export default function PartRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   headerButton: {
     marginRight: 8
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     paddingHorizontal: 8
   },
   tab: {
@@ -231,15 +231,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent'
   },
   tabActive: {
-    borderBottomColor: theme.colors.primary
+    borderBottomColor: colors.primary
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   tabTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600'
   },
   fab: {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   modalHeader: {
     flexDirection: 'row',
@@ -269,13 +269,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     backgroundColor: '#fff'
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text
+    color: colors.text
   },
   modalCloseButton: {
     padding: 4

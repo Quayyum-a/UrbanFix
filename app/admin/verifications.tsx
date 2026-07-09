@@ -19,7 +19,7 @@ import {
   Linking
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors, spacing, radius, shadows } from '@/constants/theme'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -241,13 +241,13 @@ export default function TechnicianVerificationsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return theme.colors.warning
+        return colors.warning
       case 'approved':
-        return theme.colors.success
+        return colors.success
       case 'rejected':
-        return theme.colors.error
+        return colors.error
       default:
-        return theme.colors.textSecondary
+        return colors.textSecondary
     }
   }
 
@@ -280,15 +280,15 @@ export default function TechnicianVerificationsScreen() {
 
       <View style={styles.verificationDetails}>
         <View style={styles.detailRow}>
-          <Ionicons name="card-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="card-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.detailText}>NIN: {item.nin}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="business-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.detailText}>{item.bank_name}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.detailText}>{formatDate(item.created_at)}</Text>
         </View>
       </View>
@@ -316,7 +316,7 @@ export default function TechnicianVerificationsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="shield-checkmark-outline" size={64} color={theme.colors.textSecondary} />
+      <Ionicons name="shield-checkmark-outline" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyTitle}>No {activeFilter === 'all' ? '' : activeFilter} verifications</Text>
       <Text style={styles.emptyText}>
         {activeFilter === 'pending' 
@@ -329,7 +329,7 @@ export default function TechnicianVerificationsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading verifications...</Text>
       </View>
     )
@@ -373,7 +373,7 @@ export default function TechnicianVerificationsScreen() {
               setRefreshing(true)
               loadVerifications()
             }}
-            tintColor={theme.colors.primary}
+            tintColor={colors.primary}
           />
         }
       />
@@ -389,7 +389,7 @@ export default function TechnicianVerificationsScreen() {
           <ScrollView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setSelectedVerification(null)}>
-                <Ionicons name="close" size={28} color={theme.colors.text} />
+                <Ionicons name="close" size={28} color={colors.text} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Verification Details</Text>
               <View style={{ width: 28 }} />
@@ -420,9 +420,9 @@ export default function TechnicianVerificationsScreen() {
                   style={styles.documentButton}
                   onPress={() => openDocument(selectedVerification.nin_document_url)}
                 >
-                  <Ionicons name="document-text" size={24} color={theme.colors.primary} />
+                  <Ionicons name="document-text" size={24} color={colors.primary} />
                   <Text style={styles.documentButtonText}>View NIN Document</Text>
-                  <Ionicons name="open-outline" size={20} color={theme.colors.primary} />
+                  <Ionicons name="open-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
 
@@ -565,24 +565,24 @@ export default function TechnicianVerificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   loadingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12
   },
   filterContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     paddingHorizontal: 8
   },
   filterTab: {
@@ -596,19 +596,19 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent'
   },
   filterTabActive: {
-    borderBottomColor: theme.colors.primary
+    borderBottomColor: colors.primary
   },
   filterText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   filterTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600'
   },
   filterBadge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -650,12 +650,12 @@ const styles = StyleSheet.create({
   verificationName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 4
   },
   verificationPhone: {
     fontSize: 14,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   verificationActions: {
     flexDirection: 'row',
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border
+    borderTopColor: colors.border
   },
   actionButton: {
     flex: 1,
@@ -697,10 +697,10 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   approveButton: {
-    backgroundColor: theme.colors.success
+    backgroundColor: colors.success
   },
   rejectButton: {
-    backgroundColor: theme.colors.error
+    backgroundColor: colors.error
   },
   actionButtonText: {
     fontSize: 14,
@@ -717,19 +717,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   modalHeader: {
     flexDirection: 'row',
@@ -738,13 +738,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
     backgroundColor: '#fff'
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text
+    color: colors.text
   },
   modalContent: {
     padding: 20
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
   detailSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 12
   },
   detailItem: {
@@ -763,18 +763,18 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 4
   },
   detailValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.text
+    color: colors.text
   },
   documentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     borderRadius: 8,
     padding: 16,
     gap: 12
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.primary
+    color: colors.primary
   },
   statusBadgeLarge: {
     alignSelf: 'flex-start',
@@ -797,19 +797,19 @@ const styles = StyleSheet.create({
   },
   rejectionReasonBox: {
     marginTop: 12,
-    backgroundColor: theme.colors.error + '10',
+    backgroundColor: colors.error + '10',
     borderRadius: 8,
     padding: 12
   },
   rejectionReasonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: colors.error,
     marginBottom: 4
   },
   rejectionReasonText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: colors.text,
     lineHeight: 20
   },
   modalActions: {
@@ -825,10 +825,10 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   modalApproveButton: {
-    backgroundColor: theme.colors.success
+    backgroundColor: colors.success
   },
   modalRejectButton: {
-    backgroundColor: theme.colors.error
+    backgroundColor: colors.error
   },
   modalActionButtonText: {
     fontSize: 16,
@@ -852,23 +852,23 @@ const styles = StyleSheet.create({
   rejectModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 8
   },
   rejectModalSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 16,
     lineHeight: 20
   },
   rejectInput: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: 12,
     fontSize: 15,
-    color: theme.colors.text,
+    color: colors.text,
     minHeight: 100,
     marginBottom: 20
   },
@@ -884,17 +884,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   rejectModalCancelButton: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: colors.border
   },
   rejectModalConfirmButton: {
-    backgroundColor: theme.colors.error
+    backgroundColor: colors.error
   },
   rejectModalCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text
+    color: colors.text
   },
   rejectModalConfirmText: {
     fontSize: 15,

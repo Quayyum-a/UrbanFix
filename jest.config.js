@@ -41,7 +41,9 @@ module.exports = {
     {
       displayName: "react-native",
       preset: "react-native",
-      setupFilesAfterEnv: ["@testing-library/jest-native/extend-expect"],
+      setupFilesAfterEnv: [
+        "@testing-library/jest-native/extend-expect",
+      ],
       testMatch: [
         "**/__tests__/integration/**/*.test.ts",
         "**/__tests__/integration/**/*.test.tsx",
@@ -57,6 +59,8 @@ module.exports = {
       ],
       moduleNameMapper: {
         "^@/(.*)$": "<rootDir>/$1",
+        "^@react-native-async-storage/async-storage$":
+          "@react-native-async-storage/async-storage/jest/async-storage-mock.js",
       },
     },
   ],

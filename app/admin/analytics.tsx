@@ -5,13 +5,13 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors, spacing, radius } from '@/constants/theme'
 
 export default function AnalyticsDashboardScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Ionicons name="bar-chart" size={64} color={theme.colors.primary} />
+        <Ionicons name="bar-chart" size={64} color={colors.primary} />
         <Text style={styles.title}>Analytics Dashboard</Text>
         <Text style={styles.subtitle}>Coming Soon</Text>
       </View>
@@ -20,23 +20,23 @@ export default function AnalyticsDashboardScreen() {
         <Text style={styles.infoTitle}>This feature will include:</Text>
         <View style={styles.featureList}>
           <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             <Text style={styles.featureText}>Job completion rates by technician and category</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             <Text style={styles.featureText}>Customer satisfaction monitoring and trends</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             <Text style={styles.featureText}>Revenue analytics and performance metrics</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             <Text style={styles.featureText}>Technician performance rankings</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             <Text style={styles.featureText}>Platform growth metrics and trends</Text>
           </View>
         </View>
@@ -57,7 +57,7 @@ export default function AnalyticsDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   content: {
     padding: 20,
@@ -71,13 +71,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8
   },
   subtitle: {
     fontSize: 16,
-    color: theme.colors.textSecondary
+    color: colors.textSecondary
   },
   infoBox: {
     backgroundColor: '#fff',
@@ -86,12 +86,12 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: colors.border
   },
   infoTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 16
   },
   featureList: {
@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
   featureText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.text,
+    color: colors.text,
     lineHeight: 20
   },
   requirementsBox: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     borderRadius: 12,
     padding: 20,
     width: '100%'
@@ -117,12 +117,12 @@ const styles = StyleSheet.create({
   requirementsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: 12
   },
   requirementsText: {
     fontSize: 14,
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 4
   }
 })

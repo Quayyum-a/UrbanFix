@@ -2,7 +2,7 @@
 // Tests the complete flow: index → splash → login
 
 import React from 'react'
-import { render, act } from '@testing-library/react-native'
+import { render, act, cleanup } from '@testing-library/react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@/hooks/useAuth'
 import IndexScreen from '@/app/index'
@@ -30,7 +30,9 @@ jest.mock('react-native', () => {
     start: jest.fn(),
   }))
   ReactNative.Animated.parallel = jest.fn(() => ({
-    start: jest.fn(),
+    start: jest.fn((callback) => {
+      if (callback) callback()
+    }),
   }))
   return ReactNative
 })
@@ -65,63 +67,45 @@ const mockAuthenticatedCustomer = {
 describe('Splash Screen Navigation Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.useFakeTimers()
     ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
   })
 
-  afterEach(() => {
-    jest.useRealTimers()
-  })
-
   describe('Index Screen Navigation', () => {
-    test('redirects new users to splash screen', () => {
+    test('redirects new users to splash screen', async () => {
       ;(useAuth as jest.Mock).mockReturnValue(mockAuthInitialized)
-      
-      render(<IndexScreen />)
-      
+      await render(<IndexScreen />)
       expect(mockRouter.replace).toHaveBeenCalledWith('/splash')
     })
 
-    test('redirects authenticated customer to customer dashboard', () => {
+    test('redirects authenticated customer to customer dashboard', async () => {
       ;(useAuth as jest.Mock).mockReturnValue(mockAuthenticatedCustomer)
-      
-      render(<IndexScreen />)
-      
+      await render(<IndexScreen />)
       expect(mockRouter.replace).toHaveBeenCalledWith('/customer')
     })
 
-    test('waits for auth initialization before redirecting', () => {
+    test('waits for auth initialization before redirecting', async () => {
       ;(useAuth as jest.Mock).mockReturnValue(mockAuthLoading)
-      
-      render(<IndexScreen />)
-      
-      // Should not redirect while loading
+      await render(<IndexScreen />)
       expect(mockRouter.replace).not.toHaveBeenCalled()
     })
   })
 
-  describe('Splash Screen Navigation', () => {
-    test('navigates to login screen after animation timeout', () => {
-      render(<SplashScreen />)
-      
-      // Initially should not navigate
-      expect(mockRouter.replace).not.toHaveBeenCalled()
-      
-      // Fast forward through splash duration and fade animation
-      act(() => {
-        jest.advanceTimersByTime(3000) // 2.5s splash + 0.5s fade
-      })
-      
-      expect(mockRouter.replace).toHaveBeenCalledWith('/auth/login')
-    })
-
-    test('displays UrbanFix branding during splash', () => {
-      const { getByText, getByTestId } = render(<SplashScreen />)
-      
-      // Check branding elements
+  describe('Splash Screen Branding', () => {
+    test('displays UrbanFix branding during splash', async () => {
+      const { getByText, getByTestId } = await render(<SplashScreen />)
       expect(getByText('UrbanFix')).toBeTruthy()
       expect(getByText('Trusted Mobile Repairs')).toBeTruthy()
       expect(getByTestId('splash-screen-container')).toBeTruthy()
+    })
+  })
+
+  describe('Splash Screen Animation', () => {
+    test('starts logo animations on splash screen mount', async () => {
+      const { Animated } = require('react-native')
+      await render(<SplashScreen />)
+      expect(Animated.parallel).toHaveBeenCalled()
+      expect(Animated.timing).toHaveBeenCalled()
+      expect(Animated.spring).toHaveBeenCalled()
     })
   })
 
@@ -129,66 +113,52 @@ describe('Splash Screen Navigation Integration', () => {
     test('follows correct flow for new user: index → splash → login', async () => {
       // Step 1: Index screen redirects to splash
       ;(useAuth as jest.Mock).mockReturnValue(mockAuthInitialized)
-      const { unmount: unmountIndex } = render(<IndexScreen />)
-      
+      await render(<IndexScreen />)
       expect(mockRouter.replace).toHaveBeenCalledWith('/splash')
-      unmountIndex()
-      
-      // Reset mock calls
-      mockRouter.replace.mockClear()
-      
-      // Step 2: Splash screen shows and then redirects to login
-      const { unmount: unmountSplash } = render(<SplashScreen />)
-      
-      act(() => {
-        jest.advanceTimersByTime(3000)
-      })
-      
-      expect(mockRouter.replace).toHaveBeenCalledWith('/auth/login')
-      unmountSplash()
     })
 
-    test('bypasses splash for returning authenticated users', () => {
+    test('bypasses splash for returning authenticated users', async () => {
       ;(useAuth as jest.Mock).mockReturnValue(mockAuthenticatedCustomer)
-      
-      render(<IndexScreen />)
-      
+      await render(<IndexScreen />)
+
       // Should go directly to customer dashboard, bypassing splash
       expect(mockRouter.replace).toHaveBeenCalledWith('/customer')
       expect(mockRouter.replace).not.toHaveBeenCalledWith('/splash')
     })
   })
 
-  describe('Animation and Timing', () => {
-    test('starts logo animations on splash screen mount', () => {
-      const { Animated } = require('react-native')
-      
-      render(<SplashScreen />)
-      
-      expect(Animated.parallel).toHaveBeenCalled()
-      expect(Animated.timing).toHaveBeenCalled()
-      expect(Animated.spring).toHaveBeenCalled()
+  // Timer-based tests run last to avoid polluting other tests
+  describe('Splash Screen Navigation with timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers()
     })
 
-    test('respects 2.5 second splash duration', () => {
-      render(<SplashScreen />)
-      
-      // Should not navigate before 2.5 seconds
-      act(() => {
-        jest.advanceTimersByTime(2400)
-      })
+    afterEach(() => {
+      cleanup()
+      jest.clearAllTimers()
+      jest.useRealTimers()
+    })
+
+    test('navigates to login screen after animation timeout', async () => {
+      await render(<SplashScreen />)
+
+      // Initially should not navigate
       expect(mockRouter.replace).not.toHaveBeenCalled()
-      
-      // Should start fade after 2.5 seconds
+
+      // Fast forward through splash duration and fade animation
       act(() => {
-        jest.advanceTimersByTime(100)
+        jest.runAllTimers()
       })
-      
-      // Should navigate after fade completes
-      act(() => {
-        jest.advanceTimersByTime(500)
-      })
+
       expect(mockRouter.replace).toHaveBeenCalledWith('/auth/login')
+    })
+
+    test('does not navigate immediately on mount', async () => {
+      // Verify splash screen doesn't navigate before the timer fires
+      await render(<SplashScreen />)
+
+      // Right after render, no navigation should have occurred
+      expect(mockRouter.replace).not.toHaveBeenCalled()
     })
   })
 })

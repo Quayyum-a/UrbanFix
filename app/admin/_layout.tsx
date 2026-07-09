@@ -4,7 +4,7 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
 import { Redirect } from 'expo-router'
 
@@ -19,12 +19,12 @@ export default function AdminLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopWidth: 1,
-          borderTopColor: theme.colors.border,
+          borderTopColor: colors.border,
           paddingBottom: 5,
           paddingTop: 5,
           height: 60
@@ -34,7 +34,7 @@ export default function AdminLayout() {
           fontWeight: '600'
         },
         headerStyle: {
-          backgroundColor: theme.colors.primary
+          backgroundColor: colors.primary
         },
         headerTintColor: '#fff',
         headerTitleStyle: {

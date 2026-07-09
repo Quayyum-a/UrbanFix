@@ -12,7 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors, spacing, radius } from '@/constants/theme'
 import { PartRequestService } from '@/lib/services/part-request-service'
 import type { PartRequestNotificationDB } from '@/types/parts-request.types'
 

@@ -16,7 +16,7 @@ import {
   Platform
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import theme from '@/constants/theme'
+import { colors, spacing, radius } from '@/constants/theme'
 import { PartRequestService } from '@/lib/services/part-request-service'
 import type { CreatePartRequestDTO, PartRequestFormData, PartRequestFormErrors } from '@/types/parts-request.types'
 
@@ -198,7 +198,7 @@ export function PartRequestForm({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Ionicons name="add-circle-outline" size={48} color={theme.colors.primary} />
+          <Ionicons name="add-circle-outline" size={48} color={colors.primary} />
           <Text style={styles.title}>Request New Part</Text>
           <Text style={styles.subtitle}>
             Can't find a part in our catalogue? Submit a request and we'll review it.
@@ -305,7 +305,7 @@ export function PartRequestForm({
 
         {/* Info Box */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
+          <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
           <Text style={styles.infoText}>
             Your request will be reviewed by our admin team. If approved, the part will be added to
             the catalogue and you'll be notified.
@@ -347,7 +347,7 @@ export function PartRequestForm({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: colors.background
   },
   scrollView: {
     flex: 1
@@ -363,13 +363,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: colors.text,
     marginTop: 12,
     marginBottom: 8
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 20
   },
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 8
   },
   input: {
@@ -387,44 +387,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: theme.colors.text
+    color: colors.text
   },
   textArea: {
     minHeight: 100,
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: theme.colors.text
+    color: colors.text
   },
   inputError: {
-    borderColor: theme.colors.error
+    borderColor: colors.error
   },
   errorText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: colors.error,
     marginTop: 4
   },
   helpText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'right'
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     borderRadius: 8,
     padding: 12,
     marginBottom: 24
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.primary,
+    color: colors.primary,
     marginLeft: 8,
     lineHeight: 18
   },
@@ -450,12 +450,12 @@ const styles = StyleSheet.create({
     gap: 8
   },
   buttonPrimary: {
-    backgroundColor: theme.colors.primary
+    backgroundColor: colors.primary
   },
   buttonSecondary: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: theme.colors.border
+    borderColor: colors.border
   },
   buttonDisabled: {
     opacity: 0.6
@@ -468,6 +468,6 @@ const styles = StyleSheet.create({
   buttonSecondaryText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text
+    color: colors.text
   }
 })
