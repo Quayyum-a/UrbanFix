@@ -15,21 +15,21 @@ import {
 import { Stack } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import theme from '@/constants/theme'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore } from '@/stores/authStore'
 import { PartRequestForm, PartRequestList, PartRequestDetail, NotificationBadge, PartRequestNotifications } from '@/components/parts-request'
 import type { PartRequest, PartRequestNotificationDB } from '@/types/parts-request.types'
 
 type TabType = 'all' | 'pending' | 'approved' | 'rejected'
 
 export default function PartRequestsScreen() {
-  const { user } = useAuthStore()
+  const userProfile = useAuthStore(state => state.userProfile)
   const [activeTab, setActiveTab] = useState<TabType>('all')
   const [showForm, setShowForm] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<PartRequest | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  if (!user) {
+  if (!userProfile) {
     return null
   }
 
@@ -70,7 +70,7 @@ export default function PartRequestsScreen() {
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <NotificationBadge
-                userId={user.id}
+                userId={userProfile.id}
                 onPress={() => setShowNotifications(true)}
               />
               <TouchableOpacity
@@ -116,7 +116,7 @@ export default function PartRequestsScreen() {
         {/* Request List */}
         <PartRequestList
           key={refreshKey}
-          technicianId={user.id}
+          technicianId={userProfile.id}
           filterStatus={activeTab === 'all' ? undefined : activeTab}
           onRequestPress={handleRequestPress}
         />
@@ -151,7 +151,7 @@ export default function PartRequestsScreen() {
           </View>
           
           <PartRequestForm
-            technicianId={user.id}
+            technicianId={userProfile.id}
             onSuccess={handleRequestCreated}
             onCancel={() => setShowForm(false)}
           />
@@ -195,7 +195,7 @@ export default function PartRequestsScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <PartRequestNotifications
-            userId={user.id}
+            userId={userProfile.id}
             onNotificationPress={handleNotificationPress}
             onClose={() => setShowNotifications(false)}
           />
