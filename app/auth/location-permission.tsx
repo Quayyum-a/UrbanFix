@@ -9,7 +9,8 @@ import {
   SafeAreaView,
   Pressable,
   Alert,
-  Platform
+  Platform,
+  ScrollView
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as Location from 'expo-location'
@@ -79,101 +80,108 @@ export default function LocationPermissionScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Icon */}
-        <View style={styles.iconContainer}>
-          <Ionicons 
-            name="location" 
-            size={80} 
-            color={colors.secondary} 
-          />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>
-          Help Us Find Technicians Near You
-        </Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          UrbanFix needs access to your location to connect you with verified technicians in your area. We only use your location when you're actively looking for repair services.
-        </Text>
-
-        {/* Features */}
-        <View style={styles.featuresList}>
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="people" size={28} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Find Nearby Technicians</Text>
-              <Text style={styles.featureDescription}>
-                See trusted repair experts within 5-10 minutes of your location
-              </Text>
-            </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        <View style={styles.content}>
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <Ionicons 
+              name="location" 
+              size={80} 
+              color={colors.secondary} 
+            />
           </View>
 
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="time" size={28} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Accurate Time Estimates</Text>
-              <Text style={styles.featureDescription}>
-                Get real arrival times based on actual distance and traffic
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.featureItem}>
-            <View style={styles.featureIcon}>
-              <Ionicons name="car" size={28} color={colors.secondary} />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Easy Pickup & Delivery</Text>
-              <Text style={styles.featureDescription}>
-                Technicians can come to your exact location to collect and return your device
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.buttonsContainer}>
-          <Pressable
-            onPress={handleRequestPermission}
-            disabled={isRequesting}
-            style={[
-              styles.allowButton,
-              isRequesting && styles.allowButtonDisabled
-            ]}
-          >
-            <Text style={styles.allowButtonText}>
-              {isRequesting ? 'Requesting...' : 'Allow Location Access'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={handleSkip}
-            disabled={isRequesting}
-            style={styles.skipButton}
-          >
-            <Text style={styles.skipButtonText}>
-              Skip for Now
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Privacy Note */}
-        <View style={styles.privacyContainer}>
-          <View style={styles.privacyIconRow}>
-            <Ionicons name="shield-checkmark" size={20} color={colors.success} />
-            <Text style={styles.privacyTitle}>Your Privacy Matters</Text>
-          </View>
-          <Text style={styles.privacyNote}>
-            We only access your location when you're booking a repair. Your location is never shared with technicians until you confirm a booking. You can disable this anytime in your phone's Settings.
+          {/* Title */}
+          <Text style={styles.title}>
+            Help Us Find Technicians Near You
           </Text>
+
+          {/* Description */}
+          <Text style={styles.description}>
+            UrbanFix needs access to your location to connect you with verified technicians in your area. We only use your location when you're actively looking for repair services.
+          </Text>
+
+          {/* Features */}
+          <View style={styles.featuresList}>
+            <View style={styles.featureItem}>
+              <View style={styles.featureIcon}>
+                <Ionicons name="people" size={28} color={colors.secondary} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>Find Nearby Technicians</Text>
+                <Text style={styles.featureDescription}>
+                  See trusted repair experts within 5-10 minutes of your location
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.featureItem}>
+              <View style={styles.featureIcon}>
+                <Ionicons name="time" size={28} color={colors.secondary} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>Accurate Time Estimates</Text>
+                <Text style={styles.featureDescription}>
+                  Get real arrival times based on actual distance and traffic
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.featureItem}>
+              <View style={styles.featureIcon}>
+                <Ionicons name="car" size={28} color={colors.secondary} />
+              </View>
+              <View style={styles.featureContent}>
+                <Text style={styles.featureTitle}>Easy Pickup & Delivery</Text>
+                <Text style={styles.featureDescription}>
+                  Technicians can come to your exact location to collect and return your device
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Privacy Note */}
+          <View style={styles.privacyContainer}>
+            <View style={styles.privacyIconRow}>
+              <Ionicons name="shield-checkmark" size={20} color={colors.success} />
+              <Text style={styles.privacyTitle}>Your Privacy Matters</Text>
+            </View>
+            <Text style={styles.privacyNote}>
+              We only access your location when you're booking a repair. Your location is never shared with technicians until you confirm a booking. You can disable this anytime in your phone's Settings.
+            </Text>
+          </View>
         </View>
+      </ScrollView>
+
+      {/* Fixed Buttons at Bottom */}
+      <View style={styles.buttonsContainer}>
+        <Pressable
+          onPress={handleRequestPermission}
+          disabled={isRequesting}
+          style={[
+            styles.allowButton,
+            isRequesting && styles.allowButtonDisabled
+          ]}
+        >
+          <Text style={styles.allowButtonText}>
+            {isRequesting ? 'Requesting...' : 'Allow Location Access'}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleSkip}
+          disabled={isRequesting}
+          style={styles.skipButton}
+        >
+          <Text style={styles.skipButtonText}>
+            Skip for Now
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   )
@@ -184,6 +192,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background
   },
+  scrollView: {
+    flex: 1
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.lg
+  },
   content: {
     flex: 1,
     paddingHorizontal: spacing.margin,
@@ -192,7 +207,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginBottom: spacing.lg,
-    marginTop: spacing.xxl
+    marginTop: spacing.md
   },
   title: {
     ...typography.headlineMd,
@@ -208,7 +223,7 @@ const styles = StyleSheet.create({
   },
   featuresList: {
     width: '100%',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
     gap: spacing.md
   },
   featureItem: {
@@ -239,10 +254,48 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     lineHeight: 20
   },
+  privacyContainer: {
+    backgroundColor: colors.surfaceContainerLow,
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+    width: '100%'
+  },
+  privacyIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs
+  },
+  privacyTitle: {
+    ...typography.bodyLg,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginLeft: spacing.xs
+  },
+  privacyNote: {
+    ...typography.bodyMd,
+    color: colors.text.secondary,
+    lineHeight: 20
+  },
   buttonsContainer: {
-    width: '100%',
-    marginTop: 'auto',
-    marginBottom: spacing.lg
+    paddingHorizontal: spacing.margin,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4
+      },
+      android: {
+        elevation: 8
+      }
+    })
   },
   allowButton: {
     backgroundColor: colors.secondary,
@@ -264,36 +317,12 @@ const styles = StyleSheet.create({
     color: colors.onSecondary
   },
   skipButton: {
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center'
   },
   skipButtonText: {
     ...typography.bodyLg,
     color: colors.text.secondary,
     fontWeight: '500'
-  },
-  privacyContainer: {
-    backgroundColor: colors.surfaceContainerLow,
-    padding: spacing.md,
-    borderRadius: 12,
-    marginBottom: spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.success
-  },
-  privacyIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs
-  },
-  privacyTitle: {
-    ...typography.bodyLg,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginLeft: spacing.xs
-  },
-  privacyNote: {
-    ...typography.bodyMd,
-    color: colors.text.secondary,
-    lineHeight: 20
   }
 })
