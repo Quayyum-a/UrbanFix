@@ -70,40 +70,77 @@ export default function TechnicianLayout() {
   }, [userProfile?.id])
 
   const checkVerificationStatus = async () => {
+    console.log('TechnicianLayout: checkVerificationStatus - userProfile:', userProfile)
+
     if (!userProfile?.id) {
+      console.log('TechnicianLayout: No userProfile, setting loading to false')
       setLoading(false)
       return
     }
 
     try {
+      console.log('TechnicianLayout: Fetching technician profile for user:', userProfile.id)
+
       // Check if technician profile exists
-      const { data: profile, error } = await supabase
+      // For dev mode users (id starts with 'dev-user-'), query by phone instead
+      const isDevMode = userProfile.id.startsWith('dev-user-')
+
+      let query = supabase
         .from('technician_profiles')
         .select('verification_status')
-        .eq('user_id', userProfile.id)
-        .single()
+
+      if (isDevMode) {
+        console.log('TechnicianLayout: Dev mode detected, querying by phone:', userProfile.phone)
+        // Join with users table to query by phone
+        query = supabase
+          .from('technician_profiles')
+          .select('verification_status, user_id, users!inner(phone)')
+          .eq('users.phone', userProfile.phone)
+      } else {
+        query = query.eq('user_id', userProfile.id)
+      }
+
+      // Add timeout to prevent hanging
+      const queryPromise = query.single()
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Technician profile query timeout')), 8000)
+      })
+
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any
+
+      console.log('TechnicianLayout: Profile query result:', { profile, error })
 
       if (error || !profile) {
         // No profile means technician needs to onboard
-        console.log('No technician profile found, redirecting to onboarding')
+        console.log('TechnicianLayout: No technician profile found, redirecting to onboarding')
         setVerificationStatus(null)
-        
+
         // Only redirect if not already on onboarding screen
         const isOnOnboarding = segments.includes('onboarding')
+        console.log('TechnicianLayout: isOnOnboarding?', isOnOnboarding, 'segments:', segments)
         if (!isOnOnboarding) {
           router.replace('/technician/onboarding')
         }
       } else {
+        console.log('TechnicianLayout: Setting verification status:', profile.verification_status)
         setVerificationStatus(profile.verification_status as any)
-        
-        // If pending or rejected, stay on index but show status
+
+        // If pending or rejected, redirect to pending screen
         if (profile.verification_status !== 'approved') {
-          console.log('Verification status:', profile.verification_status)
+          console.log('TechnicianLayout: Verification status:', profile.verification_status, '- redirecting to pending screen')
+          router.replace('/technician/verification-pending')
         }
       }
     } catch (error) {
-      console.error('Error checking verification:', error)
+      console.error('TechnicianLayout: Error checking verification:', error)
+      // On error, default to not verified and redirect to onboarding
+      setVerificationStatus(null)
+      const isOnOnboarding = segments.includes('onboarding')
+      if (!isOnOnboarding) {
+        router.replace('/technician/onboarding')
+      }
     } finally {
+      console.log('TechnicianLayout: Setting loading to false')
       setLoading(false)
     }
   }

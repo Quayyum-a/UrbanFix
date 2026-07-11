@@ -195,6 +195,17 @@ export default function TechnicianPricingScreen() {
     }
   }, [])
 
+  // Helper functions for progress tracking
+  const getCompletionPercentage = useCallback((): number => {
+    if (mergedCategories.length === 0) return 0
+    const setCount = mergedCategories.filter(cat => cat.technician_price !== null).length
+    return (setCount / mergedCategories.length) * 100
+  }, [mergedCategories])
+
+  const getSetCount = useCallback((): number => {
+    return mergedCategories.filter(cat => cat.technician_price !== null).length
+  }, [mergedCategories])
+
   if (categoriesLoading && categories.length === 0) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -463,16 +474,6 @@ export default function TechnicianPricingScreen() {
 }
 
 // Helper functions
-function getCompletionPercentage(): number {
-  // This would be calculated based on actual data
-  // For now, return a placeholder
-  return 0
-}
-
-function getSetCount(): number {
-  // This would count categories with technician_price !== null
-  return 0
-}
 
 function calculateRangePosition(
   min: number,

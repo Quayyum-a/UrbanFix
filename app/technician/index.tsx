@@ -8,11 +8,12 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing, typography, radius } from '@/constants/theme'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function TechnicianHomeScreen() {
   const router = useRouter()
-  const { signOut, userProfile } = useAuth()
+  const userProfile = useAuthStore(state => state.userProfile)
+  const signOut = useAuthStore(state => state.signOut)
   const [loading, setLoading] = useState(true)
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null)
   const [rejectionReason, setRejectionReason] = useState<string | null>(null)
@@ -22,25 +23,72 @@ export default function TechnicianHomeScreen() {
   }, [userProfile?.id])
 
   const checkVerificationStatus = async () => {
+    console.log('TechnicianHome: checkVerificationStatus - userProfile:', userProfile)
+
     if (!userProfile?.id) {
+      console.log('TechnicianHome: No userProfile, setting loading to false')
       setLoading(false)
       return
     }
 
     try {
-      const { data: profile } = await supabase
+      console.log('TechnicianHome: Fetching technician profile for user:', userProfile.id)
+
+      // For dev mode users (id starts with 'dev-user-'), query by phone instead
+      const isDevMode = userProfile.id.startsWith('dev-user-')
+
+      let query = supabase
         .from('technician_profiles')
         .select('verification_status, rejection_reason')
-        .eq('user_id', userProfile.id)
-        .single()
+
+      if (isDevMode) {
+        console.log('TechnicianHome: Dev mode detected, querying by phone:', userProfile.phone)
+        // Join with users table to query by phone
+        query = supabase
+          .from('technician_profiles')
+          .select('verification_status, rejection_reason, user_id, users!inner(phone)')
+          .eq('users.phone', userProfile.phone)
+      } else {
+        query = query.eq('user_id', userProfile.id)
+      }
+
+      // Add timeout to prevent hanging
+      const queryPromise = query.single()
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Technician profile query timeout')), 8000)
+      })
+
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any
+
+      console.log('TechnicianHome: Profile query result:', { profile, error })
 
       if (profile) {
+        console.log('TechnicianHome: Setting verification status:', profile.verification_status)
         setVerificationStatus(profile.verification_status as any)
         setRejectionReason(profile.rejection_reason)
+
+        // If approved, check if they need to set up pricing
+        if (profile.verification_status === 'approved') {
+          // Check if they have any pricing set
+          const { count } = await supabase
+            .from('technician_pricing')
+            .select('*', { count: 'exact', head: true })
+            .eq('technician_id', userProfile.id)
+
+          if (!count || count === 0) {
+            console.log('TechnicianHome: No pricing found, redirecting to pricing setup')
+            router.replace('/technician/pricing?setup=true')
+            return
+          }
+        }
+      } else {
+        console.log('TechnicianHome: No profile found')
       }
     } catch (error) {
-      console.error('Error checking verification:', error)
+      console.error('TechnicianHome: Error checking verification:', error)
+      // On error, don't leave loading true
     } finally {
+      console.log('TechnicianHome: Setting loading to false')
       setLoading(false)
     }
   }

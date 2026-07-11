@@ -3,7 +3,24 @@
 
 import { supabase } from '@/lib/supabase'
 import { OTPService } from './otp-service'
+import { jwtService } from './jwt-service'
 import type { Database } from '@/types/database.types'
+
+// Test phone numbers for development - bypass Supabase completely
+// Phone format: +234XXXXXXXXXX (14 characters)
+export const TEST_PHONE_NUMBERS: Record<string, string> = {
+  '+2348066025051': '123456',    // Customer
+  '+2348012345678': '654321',    // Verified Technician
+  '+2348098765432': '111222',    // Fresh Technician (needs onboarding)
+}
+
+export const isTestPhoneNumber = (phone: string): boolean => {
+  return phone in TEST_PHONE_NUMBERS
+}
+
+export const getTestOTP = (phone: string): string | undefined => {
+  return TEST_PHONE_NUMBERS[phone]
+}
 
 export interface AuthResult {
   success: boolean
@@ -86,17 +103,12 @@ export class PhoneAuthService {
 
       const formattedPhone = validation.formatted!
       console.log('✅ [Phone Auth] Phone validated:', formattedPhone)
-      
+
       // Check if this is a test number - bypass Supabase completely for dev
-      const TEST_NUMBERS: Record<string, string> = {
-        '+2348066025051': '123456',
-        '+2348012345678': '654321'
-      }
-      
-      const isTestNumber = formattedPhone in TEST_NUMBERS
-      
+      const isTestNumber = isTestPhoneNumber(formattedPhone)
+
       if (isTestNumber) {
-        console.log('🧪 [Phone Auth] Test number detected - bypassing SMS send for dev mode')
+        console.log('🧪 [Phone Auth] Test number detected - bypassing SMS send for dev mode', { phone: formattedPhone })
         console.log('✅ [Phone Auth] Dev mode OTP ready immediately!')
         return {
           success: true
@@ -183,16 +195,11 @@ export class PhoneAuthService {
       console.log('✅ [Phone Auth] Phone formatted:', formattedPhone)
 
       // Check if this is a test number - bypass real verification for development
-      const TEST_NUMBERS: Record<string, string> = {
-        '+2348066025051': '123456',
-        '+2348012345678': '654321'
-      }
-      
-      const isTestNumber = formattedPhone in TEST_NUMBERS
-      const expectedOTP = TEST_NUMBERS[formattedPhone]
-      
+      const isTestNumber = isTestPhoneNumber(formattedPhone)
+      const expectedOTP = getTestOTP(formattedPhone)
+
       if (isTestNumber) {
-        console.log('🧪 [Phone Auth] Test number detected - using dev mode verification')
+        console.log('🧪 [Phone Auth] Test number detected - using dev mode verification', { phone: formattedPhone })
         
         if (otp === expectedOTP) {
           console.log('✅ [Phone Auth] Test OTP matches - bypassing all Supabase calls for dev mode')
@@ -384,19 +391,26 @@ export class PhoneAuthService {
       const trimmedName = fullName.trim()
 
       // Check if this is a test number - use dev mode
-      const TEST_NUMBERS: Record<string, string> = {
-        '+2348066025051': '123456',
-        '+2348012345678': '654321'
-      }
-      
-      const isTestNumber = formattedPhone in TEST_NUMBERS
-      
+      const isTestNumber = isTestPhoneNumber(formattedPhone)
+
       if (isTestNumber) {
         console.log('🧪 [Phone Auth] Test number - using dev mode registration')
-        
+
+        // Set dev mode flag in JWTService to skip Supabase session checks
+        await JWTService.setDevMode(true)
+
+        // Store phone for dev mode user lookup later
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default
+          await AsyncStorage.setItem('@urbanfix_dev_phone', formattedPhone)
+          console.log('📱 [Phone Auth] Stored dev phone for lookup:', formattedPhone)
+        } catch (storageError) {
+          console.error('Failed to store dev phone:', storageError)
+        }
+
         // For dev mode, create a mock user ID
         const mockUserId = `dev-user-${formattedPhone.replace('+', '')}`
-        
+
         const mockUserData = {
           id: mockUserId,
           phone: formattedPhone,
@@ -405,7 +419,7 @@ export class PhoneAuthService {
           avatar_url: null,
           created_at: new Date().toISOString()
         }
-        
+
         console.log('✅ [Phone Auth] Dev mode registration complete')
         return {
           success: true,
@@ -495,22 +509,54 @@ export class PhoneAuthService {
   public async getCurrentUser(): Promise<Database['public']['Tables']['users']['Row'] | null> {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) {
-        return null
+      
+      // In dev mode, session might be null but we still have mock users
+      // Try to get from database by session ID first
+      if (session?.user) {
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+          console.error('Get current user error:', error)
+        }
+        
+        if (userData) {
+          return userData
+        }
+      }
+      
+      // If no session or user not found, try to get from stored phone in AsyncStorage
+      // This handles dev mode where we have mock users not in auth.users
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default
+        const storedPhone = await AsyncStorage.getItem('@urbanfix_dev_phone')
+        
+        if (storedPhone) {
+          console.log('📱 [Phone Auth] Dev mode: Looking up user by stored phone:', storedPhone)
+          
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('phone', storedPhone)
+            .single()
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Get current user by phone error:', error)
+          }
+          
+          if (userData) {
+            console.log('✅ [Phone Auth] Found user in database by phone')
+            return userData
+          }
+        }
+      } catch (asyncStorageError) {
+        console.log('📱 [Phone Auth] AsyncStorage not available or no stored phone')
       }
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-
-      if (error) {
-        console.error('Get current user error:', error)
-        return null
-      }
-
-      return userData
+      return null
     } catch (error) {
       console.error('Get current user error:', error)
       return null
@@ -522,7 +568,7 @@ export class PhoneAuthService {
    */
   public async signOut(): Promise<void> {
     try {
-      await supabase.auth.signOut()
+      await jwtService.signOut()
     } catch (error) {
       console.error('Sign out error:', error)
       throw error

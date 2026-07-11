@@ -184,48 +184,56 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
   
   initialize: async () => {
-    console.log('AuthStore: Starting initialization...')
-    
+    console.log('🚀 [AuthStore] Starting initialization...')
+
     // Set initialized immediately so app doesn't hang
     set({ loading: false, initialized: true, authStep: 'phone' })
-    console.log('AuthStore: Initialized flag set to true (optimistic)')
-    
+    console.log('✅ [AuthStore] Initialized flag set to true')
+
     try {
-      // Get current session from JWT service in background
-      console.log('AuthStore: Getting current session from JWT service...')
+      // Get current session from JWT service - this will attempt:
+      // 1. Cached session
+      // 2. Stored session from memory
+      // 3. Restoration from persistent refresh token (handles app restart)
+      // 4. Fresh session from Supabase
+      console.log('🔄 [AuthStore] Getting current session from JWT service...')
       const session = await jwtService.getCurrentSession()
-      
+
       if (session) {
-        console.log('AuthStore: Session found, role:', session.role)
-        set({ 
+        console.log('✅ [AuthStore] Session found, role:', session.role)
+        set({
           user: session.user,
-          role: session.role
+          role: session.role,
+          authStep: 'complete'
         })
-        
+
         // Get user profile
-        console.log('AuthStore: Fetching user profile...')
+        console.log('👤 [AuthStore] Fetching user profile...')
         const userProfile = await phoneAuthService.getCurrentUser()
         if (userProfile) {
-          console.log('AuthStore: User profile found')
-          set({ userProfile, authStep: 'complete' })
+          console.log('✅ [AuthStore] User profile found:', userProfile.full_name)
+          set({ userProfile })
+        } else {
+          console.warn('⚠️ [AuthStore] User profile not found despite valid session')
         }
-        
+
         // Update role service
         roleService.setRole(session.role)
       } else {
-        console.log('AuthStore: No session found, user needs to login')
+        console.log('ℹ️ [AuthStore] No session found, user needs to login')
       }
-      
-      // Listen for auth changes
+
+      // Listen for auth changes from Supabase
       supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('AuthStore: Auth state change event:', event)
+        console.log('🔔 [AuthStore] Auth state change event:', event)
         try {
           if (event === 'SIGNED_IN' && session?.user) {
+            console.log('✅ [AuthStore] User signed in')
             set({ user: session.user })
-            
+
             const userProfile = await phoneAuthService.getCurrentUser()
             if (userProfile) {
-              set({ 
+              set({
                 userProfile,
                 role: userProfile.role,
                 authStep: 'complete'
@@ -233,8 +241,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               roleService.setRole(userProfile.role)
             }
           } else if (event === 'SIGNED_OUT') {
-            set({ 
-              user: null, 
+            console.log('🚪 [AuthStore] User signed out')
+            set({
+              user: null,
               userProfile: null,
               role: null,
               authStep: 'phone',
@@ -244,13 +253,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             roleService.clearRole()
           }
         } catch (error) {
-          console.error('Auth state change error:', error)
+          console.error('❌ [AuthStore] Auth state change error:', error)
         }
       })
-      
-      console.log('AuthStore: Background initialization complete')
+
+      console.log('✅ [AuthStore] Initialization complete')
     } catch (error) {
-      console.error('Error initializing auth:', error)
+      console.error('❌ [AuthStore] Initialization error:', error)
       set({ error: 'Failed to initialize authentication' })
     }
   },

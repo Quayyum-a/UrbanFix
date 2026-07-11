@@ -6,16 +6,19 @@ import { colors, typography, spacing, radius, shadows } from '@/constants/theme'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function ProfileScreen() {
-  const { userProfile, logout } = useAuth()
+  const { userProfile, signOut } = useAuth()
 
   const handleSettingPress = (setting: string) => {
     // TODO: Navigate to setting screens
     console.log('Setting pressed:', setting)
   }
 
-  const handleLogout = () => {
-    // TODO: Show confirmation dialog
-    logout()
+  const handleLogout = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   const settings = [

@@ -45,6 +45,7 @@ type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
 
 export default function TechnicianVerificationsScreen() {
   const userProfile = useAuthStore(state => state.userProfile)
+  const user = useAuthStore(state => state.user)
   const [verifications, setVerifications] = useState<TechnicianVerification[]>([])
   const [filteredVerifications, setFilteredVerifications] = useState<TechnicianVerification[]>([])
   const [loading, setLoading] = useState(true)
