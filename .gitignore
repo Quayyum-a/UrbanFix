@@ -59,6 +59,9 @@ web-build/
 .env.local
 .env.production
 
+# Editor local history (can contain snapshots of .env)
+.history/
+
 # Logs
 *.log
 

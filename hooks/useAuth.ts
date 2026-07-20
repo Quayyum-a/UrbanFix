@@ -21,6 +21,7 @@ export function useAuth() {
     sendOTP,
     verifyOTP,
     completeRegistration,
+    directSignIn,
     signOut,
     initialize,
     hasRole,
@@ -50,6 +51,7 @@ export function useAuth() {
     sendOTP,
     verifyOTP,
     completeRegistration,
+    directSignIn,
     signOut,
     initialize,
     

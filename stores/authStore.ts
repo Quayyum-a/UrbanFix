@@ -3,13 +3,14 @@
 
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
-import { 
-  phoneAuthService, 
-  jwtService, 
+import {
+  phoneAuthService,
+  jwtService,
   roleService,
   type AuthResult,
-  type UserRole 
+  type UserRole
 } from '@/lib/auth'
+import { initializeTestFixtures } from '@/lib/auth/test-fixtures'
 import type { User } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
@@ -44,6 +45,7 @@ interface AuthActions {
   sendOTP: (phone: string) => Promise<AuthResult>
   verifyOTP: (phone: string, otp: string) => Promise<AuthResult>
   completeRegistration: (phone: string, fullName: string, role: UserRole) => Promise<AuthResult>
+  directSignIn: (phone: string) => Promise<AuthResult>
   signOut: () => Promise<void>
   initialize: () => Promise<void>
   
@@ -137,11 +139,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   completeRegistration: async (phone: string, fullName: string, role: UserRole): Promise<AuthResult> => {
     try {
       set({ isAuthenticating: true, error: null })
-      
+
       const result = await phoneAuthService.completeRegistration(phone, fullName, role)
-      
+
       if (result.success && result.user) {
-        set({ 
+        set({
           userProfile: result.user,
           role: result.user.role,
           authStep: 'complete'
@@ -151,8 +153,46 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } else {
         set({ error: result.error || 'Registration failed' })
       }
-      
+
       return result
+    } catch (error) {
+      const errorMessage = 'Network error. Please try again.'
+      set({ error: errorMessage })
+      return { success: false, error: errorMessage }
+    } finally {
+      set({ isAuthenticating: false })
+    }
+  },
+
+  directSignIn: async (phone: string): Promise<AuthResult> => {
+    try {
+      set({ isAuthenticating: true, error: null, phoneNumber: phone })
+      console.log('🔐 [AuthStore] Direct sign-in for returning user:', phone)
+
+      // Get the user by phone number
+      const userProfile = await phoneAuthService.getCurrentUser()
+
+      if (userProfile) {
+        console.log('✅ [AuthStore] Found returning user:', userProfile.full_name, 'role:', userProfile.role)
+        set({
+          userProfile,
+          role: userProfile.role,
+          authStep: 'complete'
+        })
+        // Update role service
+        roleService.setRole(userProfile.role)
+
+        return {
+          success: true,
+          user: userProfile,
+          needsRoleSelection: false
+        }
+      } else {
+        console.log('❌ [AuthStore] Returning user lookup failed')
+        const errorMessage = 'User not found'
+        set({ error: errorMessage })
+        return { success: false, error: errorMessage }
+      }
     } catch (error) {
       const errorMessage = 'Network error. Please try again.'
       set({ error: errorMessage })

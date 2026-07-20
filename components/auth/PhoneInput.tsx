@@ -18,6 +18,7 @@ import type { PhoneValidationResult } from '@/lib/auth'
 
 interface PhoneInputProps {
   onOTPSent: (phone: string) => void
+  onReturningUserDetected?: (phone: string) => void
   onError: (error: string) => void
   loading?: boolean
   initialPhone?: string
@@ -25,6 +26,7 @@ interface PhoneInputProps {
 
 export function PhoneInput({ 
   onOTPSent, 
+  onReturningUserDetected,
   onError, 
   loading = false,
   initialPhone = '' 
@@ -103,14 +105,31 @@ export function PhoneInput({
       console.log('📤 [PhoneInput] Calling phoneAuthService.sendOTP...')
       const result = await phoneAuthService.sendOTP(fullPhone)
       console.log('📥 [PhoneInput] Result:', result)
-      
+
       if (result.success) {
         console.log('✅ [PhoneInput] OTP sent successfully')
+
+        // Check if this is a returning user that doesn't need OTP
+        if (result.user && !result.needsRoleSelection) {
+          console.log('👤 [PhoneInput] Returning user detected - skipping OTP')
+          Alert.alert(
+            'Welcome Back!',
+            `We found your account. Signing you in now...`,
+            [{ text: 'OK' }]
+          )
+          // Signal that we have a returning user
+          if (onReturningUserDetected) {
+            onReturningUserDetected(fullPhone)
+          }
+          return
+        }
+
+        // New user - proceed with OTP
         onOTPSent(fullPhone)
-        
+
         // Check if this is a test number (starts with specific test prefixes)
         const isTestNumber = fullPhone === '+2348066025051' || fullPhone === '+2348012345678'
-        
+
         if (isTestNumber) {
           Alert.alert(
             'Test Mode',
@@ -138,7 +157,7 @@ export function PhoneInput({
     } finally {
       setIsLoading(false)
     }
-  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onOTPSent, onError])
+  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onOTPSent, onError, onReturningUserDetected])
 
   // Check if form is valid
   const fullPhone = getFullPhoneNumber()
@@ -345,7 +364,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   checkboxChecked: {
-    backgroundColor: '#ff5722', // UrbanFix emergency orange
+    backgroundColor: '#ff5722',
     borderColor: '#ff5722'
   },
   checkmark: {
@@ -361,11 +380,11 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   linkText: {
-    color: '#ff5722', // UrbanFix emergency orange for links
+    color: '#ff5722',
     fontWeight: '600'
   },
   sendButton: {
-    backgroundColor: '#ff5722', // UrbanFix secondary/emergency orange
+    backgroundColor: '#ff5722',
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',

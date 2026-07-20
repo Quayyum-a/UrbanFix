@@ -4,6 +4,7 @@
 import { supabase } from '@/lib/supabase'
 import { OTPService } from './otp-service'
 import { jwtService } from './jwt-service'
+import { seedTestUserToStorage } from './test-fixtures'
 import type { Database } from '@/types/database.types'
 
 // Test phone numbers for development - bypass Supabase completely
@@ -24,10 +25,10 @@ export const getTestOTP = (phone: string): string | undefined => {
 
 export interface AuthResult {
   success: boolean
-  error?: string
-  session?: any
-  user?: Database['public']['Tables']['users']['Row']
-  needsRoleSelection?: boolean
+  error?: string | undefined
+  session?: any | undefined
+  user?: Database['public']['Tables']['users']['Row'] | undefined
+  needsRoleSelection?: boolean | undefined
 }
 
 export interface PhoneValidationResult {
@@ -83,6 +84,63 @@ export class PhoneAuthService {
   }
 
   /**
+   * Checks if a user is returning or new
+   */
+  private async checkUserExists(phone: string): Promise<{ exists: boolean; user?: Database['public']['Tables']['users']['Row'] }> {
+    try {
+      // First check Supabase database
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone', phone)
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error('User existence check error:', error)
+        return { exists: false }
+      }
+
+      if (userData) {
+        const user = userData as Database['public']['Tables']['users']['Row']
+        console.log('✅ [Phone Auth] Returning user found in database:', user.phone, 'role:', user.role)
+        return { exists: true, user }
+      }
+
+      // In dev mode, also check AsyncStorage for mock users that were registered but not synced to DB
+      const isTestNumber = isTestPhoneNumber(phone)
+      if (isTestNumber) {
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default
+          const storedPhone = await AsyncStorage.getItem('@urbanfix_dev_phone')
+          const storedRole = await AsyncStorage.getItem('@urbanfix_dev_role')
+
+          if (storedPhone === phone) {
+            console.log('✅ [Phone Auth] Dev mode: Returning user found in AsyncStorage:', phone, 'role:', storedRole)
+            // Return a mock user object for dev mode with stored role
+            const mockUser = {
+              id: `dev-user-${phone.replace('+', '')}`,
+              phone: phone,
+              role: (storedRole as 'customer' | 'technician') || 'customer',
+              full_name: 'Test User',
+              avatar_url: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            } as Database['public']['Tables']['users']['Row']
+            return { exists: true, user: mockUser }
+          }
+        } catch (asyncStorageError) {
+          console.log('📱 [Phone Auth] AsyncStorage not available or no stored phone')
+        }
+      }
+
+      return { exists: false }
+    } catch (error) {
+      console.error('User existence check error:', error)
+      return { exists: false }
+    }
+  }
+
+  /**
    * Initiates phone authentication by sending OTP
    * Requirement 1.2: OTP delivery within 30 seconds
    * Requirement 1.5: Rate limiting (3 attempts per 15 minutes)
@@ -90,7 +148,7 @@ export class PhoneAuthService {
   public async sendOTP(phone: string): Promise<AuthResult> {
     try {
       console.log('📱 [Phone Auth] Sending OTP to:', phone)
-      
+
       // Validate phone format first
       const validation = this.validatePhoneNumber(phone)
       if (!validation.isValid) {
@@ -109,13 +167,29 @@ export class PhoneAuthService {
 
       if (isTestNumber) {
         console.log('🧪 [Phone Auth] Test number detected - bypassing SMS send for dev mode', { phone: formattedPhone })
-        console.log('✅ [Phone Auth] Dev mode OTP ready immediately!')
+        // Check if returning or new user
+        const { exists, user } = await this.checkUserExists(formattedPhone)
+        console.log(`✅ [Phone Auth] Dev mode - User ${exists ? 'EXISTS (returning)' : 'NEW'}`)
         return {
-          success: true
+          success: true,
+          user: user ?? undefined,
+          needsRoleSelection: !exists
         }
       }
-      
-      // Check rate limiting
+
+      // For real numbers, check if returning user
+      const { exists: userExists, user: existingUser } = await this.checkUserExists(formattedPhone)
+
+      if (userExists && existingUser) {
+        console.log('✅ [Phone Auth] Returning user - skipping OTP, ready for direct authentication')
+        return {
+          success: true,
+          user: existingUser,
+          needsRoleSelection: false
+        }
+      }
+
+      // Check rate limiting for new users
       const rateLimitCheck = await this.otpService.checkRateLimit(formattedPhone)
       if (!rateLimitCheck.allowed) {
         console.error('❌ [Phone Auth] Rate limit exceeded:', rateLimitCheck.error)
@@ -126,7 +200,7 @@ export class PhoneAuthService {
       }
 
       console.log('📤 [Phone Auth] Calling Supabase signInWithOtp...')
-      
+
       // Use Supabase Auth with phone provider
       const { error } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
@@ -146,7 +220,7 @@ export class PhoneAuthService {
       }
 
       console.log('✅ [Phone Auth] OTP sent successfully!')
-      
+
       // Track OTP attempt for rate limiting
       await this.otpService.recordOTPAttempt(formattedPhone)
 
@@ -200,13 +274,24 @@ export class PhoneAuthService {
 
       if (isTestNumber) {
         console.log('🧪 [Phone Auth] Test number detected - using dev mode verification', { phone: formattedPhone })
-        
+
         if (otp === expectedOTP) {
           console.log('✅ [Phone Auth] Test OTP matches - bypassing all Supabase calls for dev mode')
-          
-          // For test numbers, completely bypass Supabase and just succeed immediately
-          // This allows navigation through the app for testing other features
-          
+
+          // For test numbers, check if user already exists in database
+          // This allows returning users to skip role selection and go directly to dashboard
+          const { exists, user } = await this.checkUserExists(formattedPhone)
+
+          if (exists && user) {
+            console.log('✅ [Phone Auth] Dev mode: Returning user found -', user.role)
+            return {
+              success: true,
+              session: null as any, // Mock session for dev
+              user: user,
+              needsRoleSelection: false
+            }
+          }
+
           console.log('ℹ️ [Phone Auth] Dev mode: New user - needs role selection')
           return {
             success: true,
@@ -236,7 +321,7 @@ export class PhoneAuthService {
 
       // Verify OTP with Supabase Auth
       console.log('📤 [Phone Auth] Calling Supabase verifyOtp...')
-      console.log('🌐 [Phone Auth] Supabase URL:', supabase.supabaseUrl)
+      console.log('🌐 [Phone Auth] Supabase URL:', (supabase as any).supabaseUrl)
       
       const startTime = Date.now()
       
@@ -324,15 +409,17 @@ export class PhoneAuthService {
         }
       }
 
-      console.log('✅ [Phone Auth] Existing user found, role:', userData.role)
-      
+      // userData exists here - TypeScript should narrow the type
+      const existingUser = userData as Database['public']['Tables']['users']['Row']
+      console.log('✅ [Phone Auth] Existing user found, role:', existingUser.role)
+
       // Clear rate limiting on successful verification
       await this.otpService.clearRateLimit(formattedPhone)
 
       return {
         success: true,
         session: data.session,
-        user: userData,
+        user: existingUser,
         needsRoleSelection: false
       }
     } catch (error: any) {
@@ -396,16 +483,23 @@ export class PhoneAuthService {
       if (isTestNumber) {
         console.log('🧪 [Phone Auth] Test number - using dev mode registration')
 
-        // Set dev mode flag in JWTService to skip Supabase session checks
-        await JWTService.setDevMode(true)
-
-        // Store phone for dev mode user lookup later
+        // Store phone and role for dev mode user lookup later
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default
           await AsyncStorage.setItem('@urbanfix_dev_phone', formattedPhone)
-          console.log('📱 [Phone Auth] Stored dev phone for lookup:', formattedPhone)
+          await AsyncStorage.setItem('@urbanfix_dev_role', role)
+          console.log('📱 [Phone Auth] Stored dev phone and role for lookup:', formattedPhone, role)
         } catch (storageError) {
           console.error('Failed to store dev phone:', storageError)
+        }
+
+        // Create mock session token for dev mode
+        const mockSessionToken = `dev-session-${Date.now()}`
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default
+          await AsyncStorage.setItem('@urbanfix_dev_session', mockSessionToken)
+        } catch (storageError) {
+          console.error('Failed to store dev session:', storageError)
         }
 
         // For dev mode, create a mock user ID
@@ -417,7 +511,19 @@ export class PhoneAuthService {
           role: role,
           full_name: trimmedName,
           avatar_url: null,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+
+        // Seed this test user so they're recognized as returning user next time
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default
+          await AsyncStorage.setItem('@urbanfix_dev_phone', formattedPhone)
+          await AsyncStorage.setItem('@urbanfix_dev_role', role)
+          await AsyncStorage.setItem('@urbanfix_dev_fullname', trimmedName)
+          console.log('📱 [Phone Auth] Seeded test user for returning user detection:', formattedPhone)
+        } catch (storageError) {
+          console.error('Failed to seed test user:', storageError)
         }
 
         console.log('✅ [Phone Auth] Dev mode registration complete')
@@ -447,7 +553,7 @@ export class PhoneAuthService {
           phone: formattedPhone,
           role: role,
           full_name: trimmedName
-        })
+        } as Database['public']['Tables']['users']['Insert'])
         .select()
         .single()
 
@@ -474,7 +580,7 @@ export class PhoneAuthService {
           .from('customer_profiles')
           .insert({
             user_id: session.user.id
-          })
+          } as Database['public']['Tables']['customer_profiles']['Insert'])
 
         if (profileError) {
           console.error('Customer profile creation error:', profileError)
@@ -533,10 +639,10 @@ export class PhoneAuthService {
       try {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default
         const storedPhone = await AsyncStorage.getItem('@urbanfix_dev_phone')
-        
+
         if (storedPhone) {
           console.log('📱 [Phone Auth] Dev mode: Looking up user by stored phone:', storedPhone)
-          
+
           const { data: userData, error } = await supabase
             .from('users')
             .select('*')
@@ -546,10 +652,27 @@ export class PhoneAuthService {
           if (error && error.code !== 'PGRST116') {
             console.error('Get current user by phone error:', error)
           }
-          
+
           if (userData) {
             console.log('✅ [Phone Auth] Found user in database by phone')
             return userData
+          }
+
+          // In dev mode, if user not in DB but we have stored phone, check for stored role
+          const isTestNumber = isTestPhoneNumber(storedPhone)
+          if (isTestNumber) {
+            const storedRole = await AsyncStorage.getItem('@urbanfix_dev_role')
+            console.log('✅ [Phone Auth] Dev mode: Returning mock user with stored role:', storedRole)
+            const mockUser = {
+              id: `dev-user-${storedPhone.replace('+', '')}`,
+              phone: storedPhone,
+              role: (storedRole as 'customer' | 'technician') || 'customer',
+              full_name: 'Test User',
+              avatar_url: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+            return mockUser as any
           }
         }
       } catch (asyncStorageError) {

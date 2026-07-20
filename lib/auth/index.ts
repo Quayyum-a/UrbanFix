@@ -1,28 +1,15 @@
-// Authentication module exports
-// Central export point for all authentication services
+// Auth Services Public API
+// Exports all authentication services and types
 
-export { PhoneAuthService, phoneAuthService } from './phone-auth'
-export { OTPService, otpService } from './otp-service'
-export { JWTService, jwtService } from './jwt-service'
-export { RoleService, roleService } from './role-service'
+// Services
+export { PINAuthService, pinAuthService } from './pin-service'
+export type { PINResult, PINVerifyResult } from './pin-service'
 
-export type { 
-  AuthResult, 
-  PhoneValidationResult 
-} from './phone-auth'
+export { PhoneValidator, phoneValidator } from './phone-validator'
+export type { PhoneValidationResult } from './phone-validator'
 
-export type { 
-  RateLimitResult, 
-  OTPAttempt 
-} from './otp-service'
+export { AuthSessionManager, authSessionManager } from './auth-session'
+export type { AuthSession } from './auth-session'
 
-export type { 
-  SessionInfo, 
-  SessionValidationResult 
-} from './jwt-service'
-
-export type { 
-  UserRole, 
-  AccessControlResult, 
-  RolePermissions 
-} from './role-service'
+// Types
+export type { UserRole } from '@/stores/authFlowStore'

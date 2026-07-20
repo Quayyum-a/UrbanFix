@@ -21,10 +21,11 @@ type AuthStep = 'phone' | 'otp' | 'role-selection' | 'profile-setup'
 
 export default function LoginScreen() {
   const router = useRouter()
-  const { 
-    sendOTP, 
-    verifyOTP, 
+  const {
+    sendOTP,
+    verifyOTP,
     completeRegistration,
+    directSignIn,
     isAuthenticated,
     role,
     loading,
@@ -56,12 +57,53 @@ export default function LoginScreen() {
     }
   }, [isAuthenticated, role, router])
 
+  // Handle errors
+  const handleError = useCallback((errorMessage: string) => {
+    Alert.alert('Error', errorMessage, [{ text: 'OK' }])
+  }, [])
+
   // Handle OTP sent successfully
   const handleOTPSent = useCallback((phone: string) => {
     setPhoneNumber(phone)
     setCurrentStep('otp')
     clearError()
   }, [clearError])
+
+  // Handle returning user detected
+  const handleReturningUserDetected = useCallback(async (phone: string) => {
+    try {
+      console.log('👤 [Login] Returning user detected:', phone)
+      setPhoneNumber(phone)
+      clearError()
+
+      // Sign in directly without OTP
+      const result = await directSignIn(phone)
+
+      if (result.success && result.user) {
+        console.log('✅ [Login] Direct sign-in successful:', result.user.role)
+        // Redirect based on role
+        setTimeout(() => {
+          switch (result.user!.role) {
+            case 'customer':
+              router.replace('/customer')
+              break
+            case 'technician':
+              router.replace('/technician')
+              break
+            case 'admin':
+              router.replace('/admin')
+              break
+          }
+        }, 500)
+      } else {
+        console.error('❌ [Login] Direct sign-in failed:', result.error)
+        handleError(result.error || 'Failed to sign you in. Please try again.')
+      }
+    } catch (error) {
+      console.error('❌ [Login] Returning user error:', error)
+      handleError('Failed to sign you in. Please try again.')
+    }
+  }, [router, directSignIn, clearError, handleError])
 
   // Handle OTP verification success
   const handleOTPVerified = useCallback(async () => {
@@ -155,11 +197,6 @@ export default function LoginScreen() {
     clearError()
   }, [currentStep, clearError])
 
-  // Handle errors
-  const handleError = useCallback((errorMessage: string) => {
-    Alert.alert('Error', errorMessage, [{ text: 'OK' }])
-  }, [])
-
   // Render current step
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -167,6 +204,7 @@ export default function LoginScreen() {
         return (
           <PhoneInput
             onOTPSent={handleOTPSent}
+            onReturningUserDetected={handleReturningUserDetected}
             onError={handleError}
             loading={loading}
             initialPhone={phoneNumber}
