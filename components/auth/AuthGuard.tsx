@@ -4,7 +4,6 @@
 import React, { useEffect } from 'react'
 import { useRouter, useSegments } from 'expo-router'
 import { useAuth } from '@/hooks/useAuth'
-import { roleService } from '@/lib/auth'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -21,30 +20,23 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     const currentRoute = `/${segments.join('/')}`
-    
+
     // Allow splash screen and auth routes without checks
     if (currentRoute === '/splash' || currentRoute === '/' || currentRoute.startsWith('/auth')) {
       return
     }
-    
-    // Check route access for protected routes
-    const checkRouteAccess = async () => {
-      try {
-        const accessResult = await roleService.checkRouteAccess(currentRoute)
-        
-        if (!accessResult.allowed && accessResult.redirectTo) {
-          router.replace(accessResult.redirectTo)
-        }
-      } catch (error) {
-        console.error('Route access check error:', error)
-        // On error, redirect to login for safety
-        if (!isAuthenticated) {
-          router.replace('/auth/login')
-        }
-      }
+
+    if (!isAuthenticated) {
+      router.replace('/auth/login')
+      return
     }
 
-    checkRouteAccess()
+    // Route protected areas to the matching role's home if roles mismatch
+    if (currentRoute.startsWith('/customer') && role !== 'customer') {
+      router.replace(role === 'technician' ? '/technician' : '/auth/login')
+    } else if (currentRoute.startsWith('/technician') && role !== 'technician') {
+      router.replace(role === 'customer' ? '/customer' : '/auth/login')
+    }
   }, [isAuthenticated, role, segments, router, initialized, loading])
 
   // Don't show loading spinner - let the app routes handle their own loading states

@@ -1,13 +1,11 @@
-// Enhanced authentication hook with phone auth integration
+// Authentication hook backed by the PIN-based auth store
 // Provides access to all auth functionality and state
 
 import { useAuthStore } from '@/stores/authStore'
-import type { UserRole } from '@/lib/auth'
 
 export function useAuth() {
   const {
     // State
-    user,
     userProfile,
     role,
     loading,
@@ -15,29 +13,24 @@ export function useAuth() {
     isAuthenticating,
     authStep,
     phoneNumber,
+    isNewUser,
     error,
-    
+
     // Actions
-    sendOTP,
-    verifyOTP,
+    checkPhone,
+    submitPIN,
+    selectRole,
     completeRegistration,
-    directSignIn,
     signOut,
     initialize,
     hasRole,
-    canAccess,
     isAuthenticated,
     clearError,
-    
-    // Setters (for internal use)
-    setAuthStep,
-    setPhoneNumber,
-    setError
+    goToStep
   } = useAuthStore()
 
   return {
     // Authentication state
-    user,
     userProfile,
     role,
     loading,
@@ -45,36 +38,27 @@ export function useAuth() {
     isAuthenticating,
     authStep,
     phoneNumber,
+    isNewUser,
     error,
-    
+
     // Authentication methods
-    sendOTP,
-    verifyOTP,
+    checkPhone,
+    submitPIN,
+    selectRole,
     completeRegistration,
-    directSignIn,
     signOut,
     initialize,
-    
+
     // Convenience methods
     isAuthenticated: isAuthenticated(),
     isCustomer: role === 'customer',
     isTechnician: role === 'technician',
-    isAdmin: role === 'admin',
     hasRole,
-    canAccess,
-    
+
     // UI helpers
     clearError,
-    setAuthStep,
-    setPhoneNumber,
-    setError,
-    
-    // Auth flow helpers
-    needsRoleSelection: authStep === 'role-selection',
-    needsProfileSetup: authStep === 'profile-setup',
-    isComplete: authStep === 'complete',
-    canProceed: !isAuthenticating && !error,
-    
+    goToStep,
+
     // User info helpers
     fullName: userProfile?.full_name || null,
     avatarUrl: userProfile?.avatar_url || null,

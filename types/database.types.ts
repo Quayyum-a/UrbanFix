@@ -4,6 +4,39 @@
 export interface Database {
   public: {
     Tables: {
+      user_pins: {
+        Row: {
+          id: string
+          phone: string
+          pin_hash: string
+          attempts: number
+          last_attempt_at: string | null
+          locked_until: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          phone: string
+          pin_hash: string
+          attempts?: number
+          last_attempt_at?: string | null
+          locked_until?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          phone?: string
+          pin_hash?: string
+          attempts?: number
+          last_attempt_at?: string | null
+          locked_until?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           id: string
@@ -32,6 +65,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       customer_profiles: {
         Row: {
@@ -58,6 +92,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       technician_profiles: {
         Row: {
@@ -114,6 +149,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       jobs: {
         Row: {
@@ -185,6 +221,7 @@ export interface Database {
           updated_at?: string
           completed_at?: string | null
         }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -223,6 +260,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -252,6 +290,7 @@ export interface Database {
           sent_at?: string
           read_at?: string | null
         }
+        Relationships: []
       }
       parts_catalogue: {
         Row: {
@@ -287,6 +326,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       technician_pricing: {
         Row: {
@@ -316,6 +356,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -345,6 +386,7 @@ export interface Database {
           comment?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       audit_logs: {
         Row: {
@@ -377,6 +419,7 @@ export interface Database {
           ip_address?: string | null
           user_agent?: string | null
         }
+        Relationships: []
       }
     }
     Views: {
@@ -391,6 +434,7 @@ export interface Database {
           avg_rating: number
           completed_jobs: number
         }
+        Relationships: []
       }
     }
     Functions: {

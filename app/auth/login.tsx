@@ -1,46 +1,36 @@
-// Main authentication flow screen
-// Orchestrates phone input → OTP → role selection → profile setup
+// Authentication screen for returning users (login flow)
+// Flow: phone number → PIN verification → dashboard
 
-import React, { useState, useCallback, useEffect } from 'react'
-import {
-  View,
-  StyleSheet,
-  Alert,
-  SafeAreaView,
-  StatusBar
-} from 'react-native'
+import React, { useState, useCallback } from 'react'
+import { SafeAreaView, StatusBar, View, Text, Pressable, StyleSheet, Alert } from 'react-native'
 import { useRouter } from 'expo-router'
 import { PhoneInput } from '@/components/auth/PhoneInput'
-import { OTPInput } from '@/components/auth/OTPInput'
-import { RoleSelection } from '@/components/auth/RoleSelection'
-import { ProfileSetup } from '@/components/auth/ProfileSetup'
+import { PINInput } from '@/components/auth/PINInput'
 import { useAuth } from '@/hooks/useAuth'
-import type { UserRole } from '@/lib/auth'
-
-type AuthStep = 'phone' | 'otp' | 'role-selection' | 'profile-setup'
+import { UserRole } from '@/lib/auth'
 
 export default function LoginScreen() {
   const router = useRouter()
   const {
-    sendOTP,
-    verifyOTP,
-    completeRegistration,
-    directSignIn,
+    checkPhone,
+    submitPIN,
     isAuthenticated,
+    isNewUser,
     role,
     loading,
     error,
     clearError
   } = useAuth()
-  
-  const [currentStep, setCurrentStep] = useState<AuthStep>('phone')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
 
-  // Redirect if already authenticated
-  useEffect(() => {
+  const [currentStep, setCurrentStep] = useState<'phone' | 'pin'>('phone')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [forgotPinPending, setForgotPinPending] = useState(false)
+
+  // Redirect to dashboard when authenticated
+  // (This effect runs after successful PIN verification)
+  // Note: We also handle redirect in _layout.tsx but we keep it here for immediate feedback
+  const redirectIfAuthenticated = React.useCallback(() => {
     if (isAuthenticated && role) {
-      // Redirect based on role
       switch (role) {
         case 'customer':
           router.replace('/customer')
@@ -48,151 +38,37 @@ export default function LoginScreen() {
         case 'technician':
           router.replace('/technician')
           break
-        case 'admin':
-          router.replace('/admin')
-          break
         default:
-          break
+          router.replace('/')
       }
     }
   }, [isAuthenticated, role, router])
 
-  // Handle errors
+  React.useEffect(() => {
+    redirectIfAuthenticated()
+  }, [isAuthenticated, role, redirectIfAuthenticated])
+
   const handleError = useCallback((errorMessage: string) => {
     Alert.alert('Error', errorMessage, [{ text: 'OK' }])
   }, [])
 
-  // Handle OTP sent successfully
-  const handleOTPSent = useCallback((phone: string) => {
+  // Handle phone number checked - move to PIN step
+  const handlePhoneContinue = useCallback((phone: string) => {
     setPhoneNumber(phone)
-    setCurrentStep('otp')
+    setCurrentStep('pin')
     clearError()
   }, [clearError])
 
-  // Handle returning user detected
-  const handleReturningUserDetected = useCallback(async (phone: string) => {
-    try {
-      console.log('👤 [Login] Returning user detected:', phone)
-      setPhoneNumber(phone)
-      clearError()
-
-      // Sign in directly without OTP
-      const result = await directSignIn(phone)
-
-      if (result.success && result.user) {
-        console.log('✅ [Login] Direct sign-in successful:', result.user.role)
-        // Redirect based on role
-        setTimeout(() => {
-          switch (result.user!.role) {
-            case 'customer':
-              router.replace('/customer')
-              break
-            case 'technician':
-              router.replace('/technician')
-              break
-            case 'admin':
-              router.replace('/admin')
-              break
-          }
-        }, 500)
-      } else {
-        console.error('❌ [Login] Direct sign-in failed:', result.error)
-        handleError(result.error || 'Failed to sign you in. Please try again.')
-      }
-    } catch (error) {
-      console.error('❌ [Login] Returning user error:', error)
-      handleError('Failed to sign you in. Please try again.')
-    }
-  }, [router, directSignIn, clearError, handleError])
-
-  // Handle OTP verification success
-  const handleOTPVerified = useCallback(async () => {
-    try {
-      clearError()
-      
-      // Check if user needs role selection or is already complete
-      if (isAuthenticated && role) {
-        // User already has a role, redirect appropriately
-        switch (role) {
-          case 'customer':
-            router.replace('/customer')
-            break
-          case 'technician':
-            router.replace('/technician')
-            break
-          case 'admin':
-            router.replace('/admin')
-            break
-        }
-      } else {
-        // New user needs role selection
-        setCurrentStep('role-selection')
-      }
-    } catch (error) {
-      handleError('Verification completed but failed to proceed')
-    }
-  }, [isAuthenticated, role, router, clearError])
-
-  // Handle role selection
-  const handleRoleSelected = useCallback((role: UserRole) => {
-    setSelectedRole(role)
-    setCurrentStep('profile-setup')
+  // Handle PIN verified (returning user)
+  const handlePINSuccess = useCallback(() => {
     clearError()
+    // Returning user: submitPIN already loaded the profile and set the store's
+    // role/isAuthenticated state, the redirect effect above handles navigation
   }, [clearError])
 
-  // Handle profile setup completion
-  const handleProfileComplete = useCallback(async (fullName: string) => {
-    if (!selectedRole) {
-      handleError('No role selected')
-      return
-    }
-
-    try {
-      console.log('📝 [Login] Completing profile:', { fullName, role: selectedRole })
-      const result = await completeRegistration(phoneNumber, fullName, selectedRole)
-      
-      if (result.success) {
-        console.log('✅ [Login] Registration successful')
-        
-        // For customers, go to location permission screen
-        // For technicians, go directly to their home
-        if (selectedRole === 'customer') {
-          console.log('📍 [Login] Navigating to location permission')
-          router.replace('/auth/location-permission')
-        } else if (selectedRole === 'technician') {
-          console.log('🔧 [Login] Navigating to technician home')
-          router.replace('/technician')
-        } else {
-          router.replace('/')
-        }
-      } else {
-        handleError(result.error || 'Registration failed')
-      }
-    } catch (error) {
-      console.error('❌ [Login] Profile completion error:', error)
-      handleError('Network error during registration')
-    }
-  }, [selectedRole, phoneNumber, completeRegistration, router])
-
-  // Handle back navigation
   const handleBack = useCallback(() => {
-    console.log('handleBack called, currentStep:', currentStep)
-    switch (currentStep) {
-      case 'otp':
-        console.log('Going back to phone input')
-        setCurrentStep('phone')
-        break
-      case 'role-selection':
-        console.log('Going back to OTP')
-        setCurrentStep('otp')
-        break
-      case 'profile-setup':
-        console.log('Going back to role selection')
-        setCurrentStep('role-selection')
-        break
-      default:
-        console.log('No back action for step:', currentStep)
-        break
+    if (currentStep === 'pin') {
+      setCurrentStep('phone')
     }
     clearError()
   }, [currentStep, clearError])
@@ -203,49 +79,51 @@ export default function LoginScreen() {
       case 'phone':
         return (
           <PhoneInput
-            onOTPSent={handleOTPSent}
-            onReturningUserDetected={handleReturningUserDetected}
+            onSubmit={checkPhone}
+            onContinue={handlePhoneContinue}
             onError={handleError}
             loading={loading}
             initialPhone={phoneNumber}
           />
         )
-      
-      case 'otp':
+
+      case 'pin':
         return (
-          <OTPInput
-            phone={phoneNumber}
-            onVerificationSuccess={handleOTPVerified}
-            onError={handleError}
-            loading={loading}
-            onBack={handleBack}
-          />
+          <View style={{ flex: 1 }}>
+            <PINInput
+              phone={phoneNumber}
+              mode='verify' // Always verify for returning users
+              onSubmit={submitPIN}
+              onSuccess={handlePINSuccess}
+              onError={handleError}
+              loading={loading}
+              onBack={handleBack}
+            />
+            {/* Forgot PIN link */}
+            <View style={styles.forgotPinContainer}>
+              <Pressable onPress={() => {
+                setForgotPinPending(true)
+              }}>
+                <Text style={styles.forgotPinText}>Forgot PIN?</Text>
+              </Pressable>
+            </View>
+          </View>
         )
-      
-      case 'role-selection':
-        return (
-          <RoleSelection
-            onRoleSelected={handleRoleSelected}
-            onError={handleError}
-            loading={loading}
-          />
-        )
-      
-      case 'profile-setup':
-        return (
-          <ProfileSetup
-            phone={phoneNumber}
-            role={selectedRole!}
-            onComplete={handleProfileComplete}
-            onError={handleError}
-            loading={loading}
-          />
-        )
-      
+
       default:
         return null
     }
   }
+
+  // Handle navigation to forgot PIN screen
+  // We'll handle this via a modal or navigation; for simplicity, we'll navigate
+  // when the flag is set.
+  React.useEffect(() => {
+    if (forgotPinPending) {
+      router.push('/auth/reset-pin')
+      setForgotPinPending(false)
+    }
+  }, [forgotPinPending, router])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -263,6 +141,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF'
   },
   content: {
-    flex: 1
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 20
+  },
+  forgotPinContainer: {
+    alignItems: 'center',
+    marginTop: 12
+  },
+  forgotPinText: {
+    color: '#059669',
+    fontSize: 16,
+    fontWeight: '600',
+    textDecorationLine: 'underline'
   }
 })

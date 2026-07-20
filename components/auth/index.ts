@@ -2,7 +2,7 @@
 // Central export point for all auth UI components
 
 export { PhoneInput } from './PhoneInput'
-export { OTPInput } from './OTPInput'
+export { PINInput } from './PINInput'
 export { RoleSelection } from './RoleSelection'
 export { ProfileSetup } from './ProfileSetup'
 export { EnhancedProfileSetup } from './EnhancedProfileSetup'

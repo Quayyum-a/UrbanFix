@@ -1,5 +1,5 @@
 // Phone input component with Nigerian format validation
-// Implements Requirements 1.1: Phone format validation
+// On submit, checks whether the phone is new or returning, then hands off to the PIN step
 
 import React, { useState, useCallback } from 'react'
 import {
@@ -13,29 +13,29 @@ import {
   Alert,
   Pressable
 } from 'react-native'
-import { phoneAuthService } from '@/lib/auth'
+import { phoneValidator } from '@/lib/auth'
 import type { PhoneValidationResult } from '@/lib/auth'
 
 interface PhoneInputProps {
-  onOTPSent: (phone: string) => void
-  onReturningUserDetected?: (phone: string) => void
+  onSubmit: (phone: string) => Promise<{ success: boolean; error?: string | undefined; isNewUser?: boolean | undefined }>
+  onContinue: (phone: string) => void
   onError: (error: string) => void
   loading?: boolean
   initialPhone?: string
 }
 
-export function PhoneInput({ 
-  onOTPSent, 
-  onReturningUserDetected,
-  onError, 
+export function PhoneInput({
+  onSubmit,
+  onContinue,
+  onError,
   loading = false,
-  initialPhone = '' 
+  initialPhone = ''
 }: PhoneInputProps) {
   // Extract just the phone number without country code for initial value
   const getPhoneNumber = (fullPhone: string) => {
     return fullPhone.startsWith('+234') ? fullPhone.slice(4) : ''
   }
-  
+
   const [phoneNumber, setPhoneNumber] = useState(getPhoneNumber(initialPhone))
   const [isLoading, setIsLoading] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -43,24 +43,24 @@ export function PhoneInput({
 
   // Real-time phone validation
   const validatePhone = useCallback((fullPhone: string): PhoneValidationResult => {
-    return phoneAuthService.validatePhoneNumber(fullPhone)
+    return phoneValidator.validate(fullPhone)
   }, [])
 
   // Handle phone input changes (only the numeric part after country code)
   const handlePhoneChange = useCallback((text: string) => {
     // Remove non-numeric characters
     let numbers = text.replace(/[^0-9]/g, '')
-    
+
     // Remove leading 0 if present (Nigerian format)
     if (numbers.startsWith('0')) {
       numbers = numbers.slice(1)
     }
-    
+
     // Limit to 10 digits
     const limitedNumbers = numbers.slice(0, 10)
-    
+
     setPhoneNumber(limitedNumbers)
-    
+
     // Clear validation error when user starts typing
     if (validationError) {
       setValidationError(null)
@@ -72,92 +72,46 @@ export function PhoneInput({
     return `+234${phoneNumber}`
   }, [phoneNumber])
 
-  // Handle send OTP
-  const handleSendOTP = useCallback(async () => {
-    try {
-      console.log('🔘 [PhoneInput] Send OTP button pressed')
-      
-      // Check terms agreement first
-      if (!agreedToTerms) {
-        console.log('⚠️ [PhoneInput] Terms not agreed')
-        Alert.alert(
-          'Terms Required',
-          'Please agree to the Terms of Service and Privacy Policy to continue.',
-          [{ text: 'OK' }]
-        )
-        return
-      }
+  // Handle continue to PIN step
+  const handleContinue = useCallback(async () => {
+    if (!agreedToTerms) {
+      Alert.alert(
+        'Terms Required',
+        'Please agree to the Terms of Service and Privacy Policy to continue.',
+        [{ text: 'OK' }]
+      )
+      return
+    }
 
+    try {
       setIsLoading(true)
       setValidationError(null)
 
       const fullPhone = getFullPhoneNumber()
-      console.log('📱 [PhoneInput] Full phone number:', fullPhone)
 
-      // Validate phone number
       const validation = validatePhone(fullPhone)
       if (!validation.isValid) {
-        console.log('❌ [PhoneInput] Validation failed:', validation.error)
         setValidationError(validation.error || 'Invalid phone number')
         return
       }
 
-      console.log('📤 [PhoneInput] Calling phoneAuthService.sendOTP...')
-      const result = await phoneAuthService.sendOTP(fullPhone)
-      console.log('📥 [PhoneInput] Result:', result)
+      const result = await onSubmit(fullPhone)
 
       if (result.success) {
-        console.log('✅ [PhoneInput] OTP sent successfully')
-
-        // Check if this is a returning user that doesn't need OTP
-        if (result.user && !result.needsRoleSelection) {
-          console.log('👤 [PhoneInput] Returning user detected - skipping OTP')
-          Alert.alert(
-            'Welcome Back!',
-            `We found your account. Signing you in now...`,
-            [{ text: 'OK' }]
-          )
-          // Signal that we have a returning user
-          if (onReturningUserDetected) {
-            onReturningUserDetected(fullPhone)
-          }
-          return
-        }
-
-        // New user - proceed with OTP
-        onOTPSent(fullPhone)
-
-        // Check if this is a test number (starts with specific test prefixes)
-        const isTestNumber = fullPhone === '+2348066025051' || fullPhone === '+2348012345678'
-
-        if (isTestNumber) {
-          Alert.alert(
-            'Test Mode',
-            'This is a test number. Use your configured test OTP code.',
-            [{ text: 'OK' }]
-          )
-        } else {
-          Alert.alert(
-            'Verification Code Sent',
-            `We've sent a 6-digit code to ${fullPhone}. It may take 1-2 minutes to arrive. Check your messages.`,
-            [{ text: 'OK' }]
-          )
-        }
+        onContinue(fullPhone)
       } else {
-        const errorMessage = result.error || 'Failed to send verification code'
-        console.error('❌ [PhoneInput] Send failed:', errorMessage)
+        const errorMessage = result.error || 'Something went wrong. Please try again.'
         setValidationError(errorMessage)
         onError(errorMessage)
       }
     } catch (error) {
-      console.error('❌ [PhoneInput] Unexpected error:', error)
       const errorMessage = 'Network error. Please check your connection.'
       setValidationError(errorMessage)
       onError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onOTPSent, onError, onReturningUserDetected])
+  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onSubmit, onContinue, onError])
 
   // Check if form is valid
   const fullPhone = getFullPhoneNumber()
@@ -173,7 +127,7 @@ export function PhoneInput({
         <View style={styles.header}>
           <Text style={styles.title}>Enter Your Phone Number</Text>
           <Text style={styles.subtitle}>
-            We'll send you a verification code to confirm your number
+            We'll use this to identify your account and set up your PIN
           </Text>
         </View>
 
@@ -200,13 +154,13 @@ export function PhoneInput({
               editable={!isLoading && !loading}
             />
           </View>
-          
+
           {validationError && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{validationError}</Text>
             </View>
           )}
-          
+
           <View style={styles.infoContainer}>
             <Text style={styles.infoText}>
               Format: +234XXXXXXXXXX (Nigerian numbers only)
@@ -215,7 +169,7 @@ export function PhoneInput({
         </View>
 
         {/* Terms and Conditions Checkbox */}
-        <Pressable 
+        <Pressable
           style={styles.checkboxContainer}
           onPress={() => setAgreedToTerms(!agreedToTerms)}
           disabled={isLoading || loading}
@@ -237,7 +191,7 @@ export function PhoneInput({
         </Pressable>
 
         <Pressable
-          onPress={handleSendOTP}
+          onPress={handleContinue}
           disabled={!canSubmit}
           style={[
             styles.sendButton,
@@ -247,10 +201,10 @@ export function PhoneInput({
           {isLoading || loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#FFFFFF" size="small" />
-              <Text style={styles.sendButtonText}>Sending Code...</Text>
+              <Text style={styles.sendButtonText}>Checking...</Text>
             </View>
           ) : (
-            <Text style={styles.sendButtonText}>Send Code</Text>
+            <Text style={styles.sendButtonText}>Enter PIN</Text>
           )}
         </Pressable>
       </View>
