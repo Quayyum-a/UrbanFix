@@ -6,14 +6,26 @@ import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { colors } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
-import { Redirect } from 'expo-router'
+import { Redirect, useRouter } from 'expo-router'
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 
 export default function AdminLayout() {
   const userProfile = useAuthStore(state => state.userProfile)
+  const router = useRouter()
+  const { logout } = useAuthStore()
 
   // Protect admin routes - only allow admin role
   if (!userProfile || userProfile.role !== 'admin') {
     return <Redirect href="/" />
+  }
+
+  const handleSignout = async () => {
+    try {
+      await logout()
+      router.replace('/auth/login')
+    } catch (error) {
+      console.error('Signout error:', error)
+    }
   }
 
   return (
@@ -30,7 +42,7 @@ export default function AdminLayout() {
           height: 60
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600'
         },
         headerStyle: {
@@ -38,8 +50,17 @@ export default function AdminLayout() {
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
-          fontWeight: '700'
-        }
+          fontWeight: '700',
+          fontSize: 18
+        },
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleSignout}
+            style={styles.signoutButton}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        )
       }}
     >
       <Tabs.Screen
@@ -54,21 +75,10 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="technician-management"
         options={{
-          title: 'Technician Management',
+          title: 'Technicians',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shield-checkmark-outline" size={size} color={color} />
-          ),
-          tabBarBadge: undefined // Can be updated with pending count
-        }}
-      />
-      <Tabs.Screen
-        name="reviews-management"
-        options={{
-          title: 'Reviews',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
-          ),
-          tabBarBadge: undefined // Could show count of flagged reviews
+          )
         }}
       />
       <Tabs.Screen
@@ -89,15 +99,28 @@ export default function AdminLayout() {
           )
         }}
       />
+      {/* Hidden tabs - still accessible but not in tab bar */}
+      <Tabs.Screen
+        name="reviews-management"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' }
+        }}
+      />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: 'Analytics',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          )
+          href: null,
+          tabBarStyle: { display: 'none' }
         }}
       />
     </Tabs>
   )
 }
+
+const styles = StyleSheet.create({
+  signoutButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8
+  }
+})

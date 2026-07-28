@@ -242,7 +242,44 @@ export default function AdminDashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Quick Actions */}
+      {/* Analytics Preview */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Performance Metrics</Text>
+
+        <View style={styles.analyticsCard}>
+          <View style={styles.metricRow}>
+            <View style={styles.metricBox}>
+              <Text style={styles.metricLabel}>Completion Rate</Text>
+              <Text style={styles.metricValue}>94%</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '94%' }]} />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.metricRow}>
+            <View style={[styles.metricBox, { marginRight: 8 }]}>
+              <Text style={styles.metricLabel}>Avg Rating</Text>
+              <Text style={styles.metricValue}>4.8</Text>
+              <View style={styles.starRow}>
+                <Ionicons name="star" size={14} color="#e0a030" />
+                <Ionicons name="star" size={14} color="#e0a030" />
+                <Ionicons name="star" size={14} color="#e0a030" />
+                <Ionicons name="star" size={14} color="#e0a030" />
+                <Ionicons name="star-half" size={14} color="#e0a030" />
+              </View>
+            </View>
+
+            <View style={[styles.metricBox, { marginLeft: 8 }]}>
+              <Text style={styles.metricLabel}>Response Time</Text>
+              <Text style={styles.metricValue}>2.1h</Text>
+              <Text style={styles.metricMeta}>avg per job</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Reviews & More Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
@@ -252,7 +289,7 @@ export default function AdminDashboard() {
           activeOpacity={0.8}
         >
           <View style={styles.quickActionContent}>
-            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Ionicons name="shield-checkmark" size={20} color="#fff" />
             <Text style={styles.quickActionButtonText}>Manage Technicians</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#fff" />
@@ -260,12 +297,12 @@ export default function AdminDashboard() {
 
         <TouchableOpacity
           style={[styles.quickActionButton, styles.quickActionButtonSecondary]}
-          onPress={() => router.push('/admin/analytics')}
+          onPress={() => router.push('/admin/reviews-management')}
           activeOpacity={0.8}
         >
           <View style={styles.quickActionContent}>
-            <Ionicons name="analytics" size={20} color="#0047bb" />
-            <Text style={[styles.quickActionButtonText, styles.quickActionButtonTextSecondary]}>View Analytics</Text>
+            <Ionicons name="chatbubbles" size={20} color="#0047bb" />
+            <Text style={[styles.quickActionButtonText, styles.quickActionButtonTextSecondary]}>Manage Reviews</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#0047bb" />
         </TouchableOpacity>
@@ -448,5 +485,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1
+  },
+  analyticsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
+  },
+  metricRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8
+  },
+  metricBox: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#f7f9fb',
+    borderRadius: 8
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#737685',
+    fontWeight: '500',
+    marginBottom: 4
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#191c1e',
+    marginBottom: 6
+  },
+  metricMeta: {
+    fontSize: 11,
+    color: '#737685',
+    marginTop: 4
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#0047bb',
+    borderRadius: 2
+  },
+  starRow: {
+    flexDirection: 'row',
+    gap: 2
   }
 })
