@@ -285,23 +285,29 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =====================================================
--- STORAGE BUCKET POLICIES (Run in Supabase Dashboard)
+-- STORAGE BUCKET CREATION
+-- =====================================================
+
+-- 1. Create bucket for technician documents
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('technician-documents', 'technician-documents', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Create bucket for job photos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('job-photos', 'job-photos', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Create bucket for profile photos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('profile-photos', 'profile-photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- =====================================================
+-- STORAGE RLS POLICIES
 -- =====================================================
 
 /*
--- Create storage buckets (run these in Supabase Storage UI or via SQL):
-
--- 1. Create bucket for technician documents
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('technician-documents', 'technician-documents', false);
-
--- 2. Create bucket for job photos
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('job-photos', 'job-photos', false);
-
--- 3. Create bucket for profile photos
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('profile-photos', 'profile-photos', true);
 
 -- Storage policies for technician-documents bucket:
 

@@ -64,10 +64,14 @@ export default function TechnicianLayout() {
   const userProfile = useAuthStore(state => state.userProfile)
   const [loading, setLoading] = useState(true)
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null)
+  const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    checkVerificationStatus()
-  }, [userProfile?.id])
+    if (!checked && userProfile?.id) {
+      checkVerificationStatus()
+      setChecked(true)
+    }
+  }, [userProfile?.id, checked])
 
   const checkVerificationStatus = async () => {
     console.log('TechnicianLayout: checkVerificationStatus - userProfile:', userProfile)
@@ -125,10 +129,13 @@ export default function TechnicianLayout() {
         console.log('TechnicianLayout: Setting verification status:', profile.verification_status)
         setVerificationStatus(profile.verification_status as any)
 
-        // If pending or rejected, redirect to pending screen
+        // If pending or rejected, redirect to pending screen (only if not already there)
         if (profile.verification_status !== 'approved') {
-          console.log('TechnicianLayout: Verification status:', profile.verification_status, '- redirecting to pending screen')
-          router.replace('/technician/verification-pending')
+          const isOnPending = segments.includes('verification-pending')
+          if (!isOnPending) {
+            console.log('TechnicianLayout: Verification status:', profile.verification_status, '- redirecting to pending screen')
+            router.replace('/technician/verification-pending')
+          }
         }
       }
     } catch (error) {
@@ -163,11 +170,12 @@ export default function TechnicianLayout() {
     return <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="onboarding" />
-      <Tabs.Screen name="jobs" options={{ href: null }} />
+      <Tabs.Screen name="jobs/index" options={{ href: null }} />
       <Tabs.Screen name="pricing" options={{ href: null }} />
       <Tabs.Screen name="part-requests" options={{ href: null }} />
-      <Tabs.Screen name="messages" options={{ href: null }} />
+      <Tabs.Screen name="messages/index" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="verification-pending" options={{ href: null }} />
     </Tabs>
   }
 

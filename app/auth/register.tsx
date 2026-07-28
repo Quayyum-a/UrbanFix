@@ -7,19 +7,21 @@ import {
   View,
   StyleSheet,
   Alert,
-  SafeAreaView,
   StatusBar
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { PhoneInput } from '@/components/auth/PhoneInput'
 import { PINInput } from '@/components/auth/PINInput'
 import { RoleSelection } from '@/components/auth/RoleSelection'
-import { ProfileSetup } from '@/components/auth/ProfileSetup'
+import { UnifiedProfileSetup } from '@/components/auth/UnifiedProfileSetup'
+import { TechnicianOnboarding } from '@/components/auth/TechnicianOnboarding'
 import { useAuth } from '@/hooks/useAuth'
-import { AuthResult } from '@/stores/authStore'
+import { AuthResult, useAuthStore } from '@/stores/authStore'
+import { phoneValidator } from '@/lib/auth'
 import type { UserRole } from '@/lib/auth'
 
-type AuthStep = 'phone' | 'pin' | 'role-selection' | 'profile-setup'
+type AuthStep = 'phone' | 'pin' | 'role-selection' | 'customer-profile-setup' | 'technician-onboarding'
 
 export default function RegisterScreen() {
   const router = useRouter()
@@ -39,6 +41,9 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [pendingFullName, setPendingFullName] = useState('')
+
+  // Get useAuthStore to update phoneNumber
+  const authStore = useAuthStore()
 
   // Redirect if already authenticated (should not happen in register flow, but safe)
   useEffect(() => {
@@ -62,31 +67,39 @@ export default function RegisterScreen() {
   const handlePhoneSubmit = useCallback(
     async (phone: string): Promise<AuthResult> => {
       try {
+        console.log('[REGISTER] Phone submitted:', phone)
         setPhoneNumber(phone)
-        const result = await checkPhone(phone)
-        if (!result.success) {
-          // checkPhone already set error in store via setError
-          return result
+
+        // Immediately move to PIN step (optimistic update)
+        setCurrentStep('pin')
+        clearError()
+
+        // Check phone in the background (just for validation, not for navigation)
+        // We don't use the store's checkPhone because it updates authStep which interferes with local state
+        const validation = phoneValidator.validate(phone)
+        if (!validation.isValid) {
+          console.log('[REGISTER] Validation failed:', validation.error)
+          setCurrentStep('phone')
+          handleError(validation.error || 'Invalid phone number')
+          return { success: false, error: validation.error }
         }
-        if (!result.isNewUser) {
-          // Existing user: redirect to login
-          router.replace('/auth/login')
-          // Return a success result to avoid error in PhoneInput
-          return { success: true }
-        } else {
-          // New user: proceed to PIN creation
-          setCurrentStep('pin')
-          clearError()
-          // Return a success result
-          return { success: true }
-        }
+
+        const formattedPhone = validation.formatted!
+        console.log('[REGISTER] Phone validated:', formattedPhone)
+
+        // Update the auth store's phoneNumber so submitPIN can access it
+        // Use the store's internal setState to just update phoneNumber without changing authStep
+        useAuthStore.setState({ phoneNumber: formattedPhone, isNewUser: true })
+
+        return { success: true }
       } catch (err) {
-        // Network error etc.
+        console.error('[REGISTER] Error in handlePhoneSubmit:', err)
+        setCurrentStep('phone')
         handleError('Network error. Please try again.')
         return { success: false, error: 'Network error. Please try again.' }
       }
     },
-    [checkPhone, router, handleError, clearError]
+    [handleError, clearError]
   )
 
   // Handle PIN created (new user)
@@ -99,35 +112,54 @@ export default function RegisterScreen() {
   // Handle role selection
   const handleRoleSelected = useCallback((role: UserRole) => {
     setSelectedRole(role)
-    setCurrentStep('profile-setup')
+    // Route to different onboarding flows based on role
+    if (role === 'technician') {
+      setCurrentStep('technician-onboarding')
+    } else {
+      setCurrentStep('customer-profile-setup')
+    }
     clearError()
   }, [clearError])
 
-  // Handle profile setup completion (name only)
-  const handleProfileComplete = useCallback(async (fullName: string) => {
-    if (!selectedRole) {
-      handleError('No role selected')
-      return
-    }
-    setPendingFullName(fullName)
-    if (selectedRole === 'technician') {
-      // For technicians, we can complete registration now (no location needed)
+  // Handle unified profile setup completion (name + location)
+  const handleProfileComplete = useCallback(
+    async (
+      fullName: string,
+      latitude?: number,
+      longitude?: number,
+      address?: string
+    ) => {
+      if (!selectedRole) {
+        handleError('No role selected')
+        return
+      }
+      setPendingFullName(fullName)
       try {
-        const result = await completeRegistration(phoneNumber, fullName, 'technician' as UserRole)
+        const result = await completeRegistration(
+          phoneNumber,
+          fullName,
+          selectedRole,
+          latitude,
+          longitude,
+          address
+        )
         if (result.success) {
-          // Go to technician dashboard
-          router.replace('/technician')
+          // Go to appropriate dashboard
+          if (selectedRole === 'technician') {
+            router.replace('/technician')
+          } else {
+            router.replace('/customer')
+          }
         } else {
           handleError(result.error || 'Registration failed')
         }
       } catch (e) {
+        console.error('Registration error:', e)
         handleError('Network error during registration')
       }
-    } else {
-      // For customers, go to collect location
-      router.push(`/auth/complete-profile?name=${encodeURIComponent(fullName)}&phone=${encodeURIComponent(phoneNumber)}`)
-    }
-  }, [selectedRole, phoneNumber, completeRegistration, router, handleError])
+    },
+    [selectedRole, phoneNumber, completeRegistration, router, handleError]
+  )
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -138,7 +170,10 @@ export default function RegisterScreen() {
       case 'role-selection':
         setCurrentStep('pin')
         break
-      case 'profile-setup':
+      case 'customer-profile-setup':
+        setCurrentStep('role-selection')
+        break
+      case 'technician-onboarding':
         setCurrentStep('role-selection')
         break
       default:
@@ -183,14 +218,25 @@ export default function RegisterScreen() {
           />
         )
 
-      case 'profile-setup':
+      case 'customer-profile-setup':
         return (
-          <ProfileSetup
+          <UnifiedProfileSetup
             phone={phoneNumber}
-            role={selectedRole!}
+            role='customer'
             onComplete={handleProfileComplete}
             onError={handleError}
             loading={loading}
+          />
+        )
+
+      case 'technician-onboarding':
+        return (
+          <TechnicianOnboarding
+            phone={phoneNumber}
+            onComplete={handleProfileComplete}
+            onError={handleError}
+            loading={loading}
+            onBack={handleBack}
           />
         )
 

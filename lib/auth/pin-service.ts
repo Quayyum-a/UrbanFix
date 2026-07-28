@@ -389,6 +389,7 @@ export class PINAuthService {
     
     const testHashes: Record<string, string> = {
       '1234': '$2b$10$9qLLqkOCJTDEQ5X3Kl2.ZuTmBQr.N3XQB.n6yX8RM5zqkLJ8G7Cfi',
+      '5555': '$2b$10$9qLLqkOCJTDEQ5X3Kl2.ZuTmBQr.N3XQB.n6yX8RM5zqkLJ8G7Cfi',
       '5678': '$2b$10$N9qO7wVzO/LcvYyYH6K5hO6kM8pP2xR5sT3uV1wX9yZ2aB.pC4Lz.'
     }
 
@@ -396,10 +397,11 @@ export class PINAuthService {
       return testHashes[pin]
     }
 
-    // For other PINs in demo, use a simple hash (NOT SECURE)
-    // This should never be done in production
-    const hash = Buffer.from(pin).toString('base64')
-    return `demo_${hash}`
+    // For PINs not in the test hashes, return a placeholder
+    // This prevents the app from crashing in React Native where Buffer is not available
+    // In production, PIN hashing must be done server-side with bcrypt
+    console.warn(`[PIN] Using placeholder hash for PIN ${pin} - this is NOT SECURE and should not happen in production`)
+    return `placeholder_hash_for_${pin}`
   }
 }
 

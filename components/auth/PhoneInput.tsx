@@ -92,26 +92,30 @@ export function PhoneInput({
       const validation = validatePhone(fullPhone)
       if (!validation.isValid) {
         setValidationError(validation.error || 'Invalid phone number')
+        setIsLoading(false)
         return
       }
 
+      // Call the submit handler which should navigate
       const result = await onSubmit(fullPhone)
 
       if (result.success) {
-        onContinue(fullPhone)
+        // Navigation is handled in login.tsx/register.tsx's handlePhoneSubmit
+        // Don't need to do anything here
+        setIsLoading(false)
       } else {
         const errorMessage = result.error || 'Something went wrong. Please try again.'
         setValidationError(errorMessage)
         onError(errorMessage)
+        setIsLoading(false)
       }
     } catch (error) {
       const errorMessage = 'Network error. Please check your connection.'
       setValidationError(errorMessage)
       onError(errorMessage)
-    } finally {
       setIsLoading(false)
     }
-  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onSubmit, onContinue, onError])
+  }, [phoneNumber, agreedToTerms, getFullPhoneNumber, validatePhone, onSubmit, onError])
 
   // Check if form is valid
   const fullPhone = getFullPhoneNumber()

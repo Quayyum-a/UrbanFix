@@ -8,15 +8,17 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native'
+import { colors } from '@/constants/theme'
 import type { UserRole } from '@/lib/auth'
 
 interface RoleOption {
   role: UserRole
   title: string
   description: string
-  icon: string
+  iconSource: any
   features: string[]
 }
 
@@ -31,7 +33,7 @@ const roleOptions: RoleOption[] = [
     role: 'customer',
     title: 'I need repairs',
     description: 'Book device repairs from verified technicians',
-    icon: '📱',
+    iconSource: require('@/assets/customer-role-icon.png'),
     features: [
       'Book device repairs',
       'Track repair progress',
@@ -42,7 +44,7 @@ const roleOptions: RoleOption[] = [
     role: 'technician',
     title: 'I fix devices',
     description: 'Provide repair services and earn income',
-    icon: '🔧',
+    iconSource: require('@/assets/technician-role-icon.png'),
     features: [
       'Accept repair jobs',
       'Set your own pricing',
@@ -117,9 +119,12 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
               >
                 <View style={styles.roleCardContent}>
                   <View style={styles.roleHeader}>
-                    <View style={styles.roleIcon}>
-                      <Text style={styles.roleIconText}>{option.icon}</Text>
-                    </View>
+                    <Image
+                      source={option.iconSource}
+                      style={styles.roleIcon}
+                      resizeMode="contain"
+                      defaultSource={option.iconSource}
+                    />
                     <View style={styles.roleTitleContainer}>
                       <Text style={[
                         styles.roleTitle,
@@ -152,7 +157,9 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
                     <View style={styles.featuresList}>
                       {option.features.map((feature, index) => (
                         <View key={index} style={styles.featureItem}>
-                          <View style={styles.featureBullet} />
+                          <View style={styles.featureBullet}>
+                            <Text style={styles.featureCheckmark}>✓</Text>
+                          </View>
                           <Text style={[
                             styles.featureText,
                             isSelected && styles.featureTextSelected
@@ -179,16 +186,25 @@ export function RoleSelection({ onRoleSelected, onError, loading = false }: Role
             disabled={!canContinue}
             style={[
               styles.continueButton,
+              selectedRole && styles.continueButtonActive,
               !canContinue && styles.continueButtonDisabled
             ]}
           >
             {isSubmitting || loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator color="#FFFFFF" size="small" />
-                <Text style={styles.continueButtonText}>Please wait...</Text>
+                <Text style={[
+                  styles.continueButtonText,
+                  selectedRole && styles.continueButtonTextActive
+                ]}>
+                  Please wait...
+                </Text>
               </View>
             ) : (
-              <Text style={styles.continueButtonText}>
+              <Text style={[
+                styles.continueButtonText,
+                selectedRole && styles.continueButtonTextActive
+              ]}>
                 {getButtonText()}
               </Text>
             )}
@@ -205,47 +221,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF'
   },
   content: {
-    paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
     paddingBottom: 32
   },
   header: {
-    marginBottom: 32,
-    alignItems: 'center'
+    marginBottom: 28,
+    alignItems: 'flex-start'
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
-    textAlign: 'center'
+    marginBottom: 4,
+    textAlign: 'left'
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 24
+    textAlign: 'left',
+    lineHeight: 20
   },
   rolesContainer: {
-    gap: 16,
-    marginBottom: 32
+    gap: 14,
+    marginBottom: 28
   },
   roleCard: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
     backgroundColor: '#FFFFFF'
   },
   roleCardSelected: {
-    borderColor: '#ff5722', // UrbanFix orange
-    backgroundColor: '#FFF4F2'
+    borderColor: '#1E3A8A',
+    borderWidth: 2,
+    backgroundColor: '#EFF6FF'
   },
   roleCardDisabled: {
-    opacity: 0.6
+    opacity: 0.5
   },
   roleCardContent: {
-    gap: 16
+    gap: 14
   },
   roleHeader: {
     flexDirection: 'row',
@@ -253,122 +271,133 @@ const styles = StyleSheet.create({
     gap: 12
   },
   roleIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  roleIconText: {
-    fontSize: 24
+    width: 56,
+    height: 56
   },
   roleTitleContainer: {
-    flex: 1
+    flex: 1,
+    paddingTop: 2
   },
   roleTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 4
+    marginBottom: 2
   },
   roleTitleSelected: {
-    color: '#ff5722' // UrbanFix orange
+    color: '#111827'
   },
   roleDescription: {
-    fontSize: 16,
+    fontSize: 13,
     color: '#6B7280',
-    lineHeight: 22
+    lineHeight: 18
   },
   roleDescriptionSelected: {
-    color: '#E64A19' // Darker orange
+    color: '#6B7280'
   },
   radioButton: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderWidth: 2,
     borderColor: '#D1D5DB',
-    borderRadius: 12,
+    borderRadius: 11,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    marginTop: 2
   },
   radioButtonSelected: {
-    borderColor: '#ff5722' // UrbanFix orange
+    borderColor: '#1E3A8A',
+    borderWidth: 2,
+    backgroundColor: '#1E3A8A'
   },
   radioButtonInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#ff5722', // UrbanFix orange
-    borderRadius: 6
+    width: 8,
+    height: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4
   },
   featuresContainer: {
-    gap: 12
+    gap: 10,
+    paddingTop: 4
   },
   featuresTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151'
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   featuresTitleSelected: {
-    color: '#ff5722' // UrbanFix orange
+    color: '#6B7280'
   },
   featuresList: {
-    gap: 8
+    gap: 7
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    gap: 10
   },
   featureBullet: {
-    width: 6,
-    height: 6,
-    backgroundColor: '#9CA3AF',
-    borderRadius: 3
-  },
-  featureText: {
-    fontSize: 14,
-    color: '#6B7280',
-    flex: 1
-  },
-  featureTextSelected: {
-    color: '#E64A19' // Darker orange
-  },
-  footer: {
-    gap: 16
-  },
-  warningText: {
-    fontSize: 14,
-    color: '#D97706',
-    textAlign: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    fontWeight: '500'
-  },
-  continueButton: {
-    backgroundColor: '#ff5722', // UrbanFix emergency orange
-    paddingVertical: 18,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#ff5722',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4
+    backgroundColor: '#F0F0F0',
+    marginTop: 1
+  },
+  featureCheckmark: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    lineHeight: 16
+  },
+  featureText: {
+    fontSize: 13,
+    color: '#374151',
+    flex: 1,
+    lineHeight: 18
+  },
+  featureTextSelected: {
+    color: '#374151'
+  },
+  footer: {
+    gap: 14
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#92400E',
+    textAlign: 'center',
+    backgroundColor: '#FEFCE8',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    fontWeight: '500',
+    lineHeight: 18
+  },
+  continueButton: {
+    backgroundColor: '#E8E8E8',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  continueButtonActive: {
+    backgroundColor: colors.primary
   },
   continueButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-    opacity: 0.5,
-    shadowOpacity: 0
+    opacity: 0.6
   },
   continueButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5
+    color: '#999999',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3
+  },
+  continueButtonTextActive: {
+    color: '#FFFFFF'
   },
   loadingContainer: {
     flexDirection: 'row',

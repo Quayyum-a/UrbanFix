@@ -66,7 +66,7 @@ export function AvatarUpload({
       if (!hasPermission) return
 
       const options: ImagePicker.ImagePickerOptions = {
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1], // Square aspect ratio
         quality: 0.8,

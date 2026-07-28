@@ -56,40 +56,59 @@ export default function TechnicianOnboardingScreen() {
 
   const handleDocumentPick = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'application/pdf'],
-        copyToCacheDirectory: true
+      // Check if user profile is available
+      if (!userProfile?.id) {
+        Alert.alert('Error', 'User profile not loaded. Please try again.')
+        return
+      }
+
+      // First, try to pick from photo library
+      const photoResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 0.8
       })
 
-      if (result.canceled) return
+      if (photoResult.canceled) return
 
       setUploading(true)
-      const file = result.assets[0]
+      const asset = photoResult.assets[0]
 
       // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${userProfile?.id}_${Date.now()}.${fileExt}`
-      const filePath = `nin-documents/${fileName}`
+      const fileExt = asset.uri.split('.').pop() || 'jpg'
+      const fileName = `${userProfile.id}_${Date.now()}.${fileExt}`
+      const filePath = `${userProfile.id}/nin-documents/${fileName}`
+
+      console.log('[UPLOAD] User ID:', userProfile.id)
+      console.log('[UPLOAD] File path:', filePath)
+      console.log('[UPLOAD] MIME type:', asset.mimeType || 'image/jpeg')
+
+      // For Supabase Storage, we need to upload as binary data, not FormData
+      // Fetch the file as blob first
+      const response = await fetch(asset.uri)
+      const blob = await response.blob()
+
+      console.log('[UPLOAD] Blob MIME type:', blob.type)
 
       const { error: uploadError, data } = await supabase.storage
-        .from('verification-documents')
-        .upload(filePath, {
-          uri: file.uri,
-          name: fileName,
-          type: file.mimeType || 'application/octet-stream'
-        } as any)
+        .from('technician-documents')
+        .upload(filePath, blob, {
+          contentType: asset.mimeType || 'image/jpeg',
+          upsert: false
+        })
 
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
-        .from('verification-documents')
+        .from('technician-documents')
         .getPublicUrl(filePath)
 
       setFormData({ ...formData, nin_doc_url: publicUrl })
-      Alert.alert('Success', 'Document uploaded successfully')
+      Alert.alert('Success', 'NIN document uploaded successfully')
     } catch (error) {
       console.error('Document upload error:', error)
-      Alert.alert('Error', 'Failed to upload document')
+      Alert.alert('Error', 'Failed to upload NIN document. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -135,19 +154,44 @@ export default function TechnicianOnboardingScreen() {
     try {
       setLoading(true)
 
-      // Create technician profile
-      const { error: profileError } = await supabase
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
         .from('technician_profiles')
-        .insert({
-          user_id: userProfile?.id,
-          nin: formData.nin,
-          nin_doc_url: formData.nin_doc_url,
-          shop_address: formData.shop_address,
-          bank_name: formData.bank_name,
-          bank_account_number: formData.bank_account_number,
-          bank_account_name: formData.bank_account_name,
-          verification_status: 'pending'
-        })
+        .select('id')
+        .eq('user_id', userProfile?.id)
+        .single()
+
+      // Update if exists, insert if new
+      let profileError
+      if (existingProfile?.id) {
+        const { error } = await supabase
+          .from('technician_profiles')
+          .update({
+            nin: formData.nin,
+            nin_doc_url: formData.nin_doc_url,
+            shop_address: formData.shop_address,
+            bank_name: formData.bank_name,
+            bank_account_number: formData.bank_account_number,
+            bank_account_name: formData.bank_account_name,
+            verification_status: 'pending'
+          })
+          .eq('user_id', userProfile?.id)
+        profileError = error
+      } else {
+        const { error } = await supabase
+          .from('technician_profiles')
+          .insert({
+            user_id: userProfile?.id,
+            nin: formData.nin,
+            nin_doc_url: formData.nin_doc_url,
+            shop_address: formData.shop_address,
+            bank_name: formData.bank_name,
+            bank_account_number: formData.bank_account_number,
+            bank_account_name: formData.bank_account_name,
+            verification_status: 'pending'
+          })
+        profileError = error
+      }
 
       if (profileError) throw profileError
 
@@ -157,10 +201,9 @@ export default function TechnicianOnboardingScreen() {
         .insert({
           user_id: userProfile?.id,
           nin: formData.nin,
-          nin_document_url: formData.nin_doc_url,
           bank_name: formData.bank_name,
           account_number: formData.bank_account_number,
-          account_holder_name: formData.bank_account_name,
+          account_name: formData.bank_account_name,
           guarantor_name: formData.guarantor_name,
           guarantor_phone: formData.guarantor_phone,
           guarantor_email: formData.guarantor_email,

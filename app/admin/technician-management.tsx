@@ -1,6 +1,6 @@
-// Technician Verification Management Screen
-// Requirements: 19.1, 19.2, 19.3, 19.4, 19.5
-// Admin interface for reviewing and approving/rejecting technician verifications
+// Technician Management Screen
+// Unified interface for reviewing and approving/rejecting technician verifications
+// Combines the best features of verifications.tsx and technician-approval.tsx
 
 import React, { useState, useEffect } from 'react'
 import {
@@ -37,34 +37,45 @@ interface TechnicianVerification {
   account_number: string
   account_name: string
   status: 'pending' | 'approved' | 'rejected'
-  created_at: string
+  submitted_at: string
   rejection_reason?: string
 }
 
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
 
-export default function TechnicianVerificationsScreen() {
+export default function TechnicianManagementScreen() {
   const userProfile = useAuthStore(state => state.userProfile)
   const user = useAuthStore(state => state.user)
-  const [verifications, setVerifications] = useState<TechnicianVerification[]>([])
-  const [filteredVerifications, setFilteredVerifications] = useState<TechnicianVerification[]>([])
+  const [technicians, setTechnicians] = useState<TechnicianVerification[]>([])
+  const [filteredTechnicians, setFilteredTechnicians] = useState<TechnicianVerification[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [activeFilter, setActiveFilter] = useState<FilterType>('pending')
-  const [selectedVerification, setSelectedVerification] = useState<TechnicianVerification | null>(null)
+  const [selectedTechnician, setSelectedTechnician] = useState<TechnicianVerification | null>(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [subscription, setSubscription] = useState<any>(null)
 
   useEffect(() => {
-    loadVerifications()
+    loadTechnicians()
+    setupSubscription()
   }, [])
 
   useEffect(() => {
-    filterVerifications()
-  }, [activeFilter, verifications])
+    return () => {
+      // Clean up subscription
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
+  }, [])
 
-  const loadVerifications = async () => {
+  useEffect(() => {
+    filterTechnicians()
+  }, [activeFilter, technicians])
+
+  const loadTechnicians = async () => {
     try {
       setLoading(true)
 
@@ -83,68 +94,89 @@ export default function TechnicianVerificationsScreen() {
           account_name,
           status,
           rejection_reason,
-          created_at,
+          submitted_at,
           users!inner (
             full_name,
             phone
           )
         `)
-        .order('created_at', { ascending: false })
+        .order('submitted_at', { ascending: false })
 
       if (error) throw error
 
-      const formatted = data?.map((v: any) => ({
-        id: v.id,
-        user_id: v.user_id,
-        full_name: v.users.full_name,
-        phone: v.users.phone,
-        nin: v.nin,
-        nin_document_url: v.nin_document_url,
-        guarantor_name: v.guarantor_name,
-        guarantor_phone: v.guarantor_phone,
-        guarantor_address: v.guarantor_address,
-        bank_name: v.bank_name,
-        account_number: v.account_number,
-        account_name: v.account_name,
-        status: v.status,
-        rejection_reason: v.rejection_reason,
-        created_at: v.created_at
+      const formatted = data?.map((t: any) => ({
+        id: t.id,
+        user_id: t.user_id,
+        full_name: t.users.full_name,
+        phone: t.users.phone,
+        nin: t.nin,
+        nin_document_url: t.nin_document_url,
+        guarantor_name: t.guarantor_name,
+        guarantor_phone: t.guarantor_phone,
+        guarantor_address: t.guarantor_address,
+        bank_name: t.bank_name,
+        account_number: t.account_number,
+        account_name: t.account_name,
+        status: t.status,
+        rejection_reason: t.rejection_reason,
+        submitted_at: t.submitted_at
       })) || []
 
-      setVerifications(formatted)
+      setTechnicians(formatted)
     } catch (error) {
-      console.error('Error loading verifications:', error)
-      Alert.alert('Error', 'Failed to load verifications')
+      console.error('Error loading technicians for approval:', error)
+      Alert.alert('Error', 'Failed to load technicians for approval')
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
 
-  const filterVerifications = () => {
+  const setupSubscription = () => {
+    // Subscribe to changes in technician_verifications table
+    const newSubscription = supabase
+      .channel('tech_verifications_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'technician_verifications'
+        },
+        () => {
+          // Refresh data when changes occur
+          loadTechnicians()
+        }
+      )
+      .subscribe()
+
+    setSubscription(newSubscription)
+  }
+
+  const filterTechnicians = () => {
     if (activeFilter === 'all') {
-      setFilteredVerifications(verifications)
+      setFilteredTechnicians(technicians)
     } else {
-      setFilteredVerifications(verifications.filter(v => v.status === activeFilter))
+      setFilteredTechnicians(technicians.filter(t => t.status === activeFilter))
     }
   }
 
-  const handleApprove = async (verification: TechnicianVerification) => {
+  const handleApprove = async (technician: TechnicianVerification) => {
     Alert.alert(
-      'Approve Verification',
-      `Approve ${verification.full_name} as a verified technician?`,
+      'Approve Technician',
+      `Approve ${technician.full_name} as a verified technician?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Approve',
           style: 'default',
-          onPress: () => processApproval(verification)
+          onPress: () => processApproval(technician)
         }
       ]
     )
   }
 
-  const processApproval = async (verification: TechnicianVerification) => {
+  const processApproval = async (technician: TechnicianVerification) => {
     try {
       setProcessing(true)
 
@@ -156,7 +188,7 @@ export default function TechnicianVerificationsScreen() {
           reviewed_at: new Date().toISOString(),
           reviewed_by: user?.id
         })
-        .eq('id', verification.id)
+        .eq('id', technician.id)
 
       if (verificationError) throw verificationError
 
@@ -164,25 +196,29 @@ export default function TechnicianVerificationsScreen() {
       const { error: profileError } = await supabase
         .from('technician_profiles')
         .update({
-          verification_status: 'approved'
+          verification_status: 'approved',
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString()
         })
-        .eq('user_id', verification.user_id)
+        .eq('user_id', technician.user_id)
 
       if (profileError) throw profileError
 
-      Alert.alert('Success', 'Technician approved successfully')
-      setSelectedVerification(null)
-      loadVerifications()
+      // Send notification to technician (in a real app)
+
+      Alert.alert('Success', `Technician ${technician.full_name} approved successfully`)
+      setSelectedTechnician(null)
+      loadTechnicians()
     } catch (error) {
-      console.error('Error approving verification:', error)
-      Alert.alert('Error', 'Failed to approve verification')
+      console.error('Error approving technician:', error)
+      Alert.alert('Error', 'Failed to approve technician')
     } finally {
       setProcessing(false)
     }
   }
 
-  const handleReject = (verification: TechnicianVerification) => {
-    setSelectedVerification(verification)
+  const handleReject = (technician: TechnicianVerification) => {
+    setSelectedTechnician(technician)
     setShowRejectModal(true)
   }
 
@@ -192,7 +228,7 @@ export default function TechnicianVerificationsScreen() {
       return
     }
 
-    if (!selectedVerification) return
+    if (!selectedTechnician) return
 
     try {
       setProcessing(true)
@@ -206,7 +242,7 @@ export default function TechnicianVerificationsScreen() {
           reviewed_at: new Date().toISOString(),
           reviewed_by: user?.id
         })
-        .eq('id', selectedVerification.id)
+        .eq('id', selectedTechnician.id)
 
       if (verificationError) throw verificationError
 
@@ -214,20 +250,23 @@ export default function TechnicianVerificationsScreen() {
       const { error: profileError } = await supabase
         .from('technician_profiles')
         .update({
-          verification_status: 'rejected'
+          verification_status: 'rejected',
+          rejection_reason: rejectionReason.trim(),
+          reviewed_by: user?.id,
+          reviewed_at: new Date().toISOString()
         })
-        .eq('user_id', selectedVerification.user_id)
+        .eq('user_id', selectedTechnician.user_id)
 
       if (profileError) throw profileError
 
-      Alert.alert('Success', 'Verification rejected')
+      Alert.alert('Success', 'Technician rejected')
       setShowRejectModal(false)
       setRejectionReason('')
-      setSelectedVerification(null)
-      loadVerifications()
+      setSelectedTechnician(null)
+      loadTechnicians()
     } catch (error) {
-      console.error('Error rejecting verification:', error)
-      Alert.alert('Error', 'Failed to reject verification')
+      console.error('Error rejecting technician:', error)
+      Alert.alert('Error', 'Failed to reject technician')
     } finally {
       setProcessing(false)
     }
@@ -261,16 +300,16 @@ export default function TechnicianVerificationsScreen() {
     })
   }
 
-  const renderVerification = ({ item }: { item: TechnicianVerification }) => (
+  const renderTechnician = ({ item }: { item: TechnicianVerification }) => (
     <TouchableOpacity
-      style={styles.verificationCard}
-      onPress={() => setSelectedVerification(item)}
+      style={styles.technicianCard}
+      onPress={() => setSelectedTechnician(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.verificationHeader}>
-        <View style={styles.verificationInfo}>
-          <Text style={styles.verificationName}>{item.full_name}</Text>
-          <Text style={styles.verificationPhone}>{item.phone}</Text>
+      <View style={styles.technicianHeader}>
+        <View style={styles.technicianInfo}>
+          <Text style={styles.technicianName}>{item.full_name}</Text>
+          <Text style={styles.technicianPhone}>{item.phone}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
@@ -279,7 +318,7 @@ export default function TechnicianVerificationsScreen() {
         </View>
       </View>
 
-      <View style={styles.verificationDetails}>
+      <View style={styles.technicianDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="card-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.detailText}>NIN: {item.nin}</Text>
@@ -290,12 +329,12 @@ export default function TechnicianVerificationsScreen() {
         </View>
         <View style={styles.detailRow}>
           <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.detailText}>{formatDate(item.created_at)}</Text>
+          <Text style={styles.detailText}>{formatDate(item.submitted_at)}</Text>
         </View>
       </View>
 
       {item.status === 'pending' && (
-        <View style={styles.verificationActions}>
+        <View style={styles.technicianActions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.approveButton]}
             onPress={() => handleApprove(item)}
@@ -318,11 +357,11 @@ export default function TechnicianVerificationsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="shield-checkmark-outline" size={64} color={colors.textSecondary} />
-      <Text style={styles.emptyTitle}>No {activeFilter === 'all' ? '' : activeFilter} verifications</Text>
+      <Text style={styles.emptyTitle}>No {activeFilter === 'all' ? '' : activeFilter} technicians</Text>
       <Text style={styles.emptyText}>
-        {activeFilter === 'pending' 
-          ? 'All caught up! No pending verifications to review.'
-          : `No ${activeFilter} verifications found.`}
+        {activeFilter === 'pending'
+          ? 'All caught up! No pending technician approvals.'
+          : `No ${activeFilter} technicians found.`}
       </Text>
     </View>
   )
@@ -331,7 +370,7 @@ export default function TechnicianVerificationsScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading verifications...</Text>
+        <Text style={styles.loadingText}>Loading technicians for approval...</Text>
       </View>
     )
   }
@@ -352,7 +391,7 @@ export default function TechnicianVerificationsScreen() {
             {filter !== 'all' && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>
-                  {verifications.filter(v => v.status === filter).length}
+                  {technicians.filter(t => t.status === filter).length}
                 </Text>
               </View>
             )}
@@ -360,10 +399,10 @@ export default function TechnicianVerificationsScreen() {
         ))}
       </View>
 
-      {/* Verifications List */}
+      {/* Technicians List */}
       <FlatList
-        data={filteredVerifications}
-        renderItem={renderVerification}
+        data={filteredTechnicians}
+        renderItem={renderTechnician}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
@@ -372,27 +411,27 @@ export default function TechnicianVerificationsScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true)
-              loadVerifications()
+              loadTechnicians()
             }}
             tintColor={colors.primary}
           />
         }
       />
 
-      {/* Verification Detail Modal */}
+      {/* Technician Detail Modal */}
       <Modal
-        visible={!!selectedVerification && !showRejectModal}
+        visible={!!selectedTechnician && !showRejectModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedVerification(null)}
+        onRequestClose={() => setSelectedTechnician(null)}
       >
-        {selectedVerification && (
+        {selectedTechnician && (
           <ScrollView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setSelectedVerification(null)}>
+              <TouchableOpacity onPress={() => setSelectedTechnician(null)}>
                 <Ionicons name="close" size={28} color={colors.text} />
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Verification Details</Text>
+              <Text style={styles.modalTitle}>Technician Details</Text>
               <View style={{ width: 28 }} />
             </View>
 
@@ -402,15 +441,15 @@ export default function TechnicianVerificationsScreen() {
                 <Text style={styles.detailSectionTitle}>Personal Information</Text>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Full Name</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.full_name}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.full_name}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Phone</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.phone}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.phone}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>NIN</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.nin}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.nin}</Text>
                 </View>
               </View>
 
@@ -419,7 +458,7 @@ export default function TechnicianVerificationsScreen() {
                 <Text style={styles.detailSectionTitle}>NIN Document</Text>
                 <TouchableOpacity
                   style={styles.documentButton}
-                  onPress={() => openDocument(selectedVerification.nin_document_url)}
+                  onPress={() => openDocument(selectedTechnician.nin_document_url)}
                 >
                   <Ionicons name="document-text" size={24} color={colors.primary} />
                   <Text style={styles.documentButtonText}>View NIN Document</Text>
@@ -432,15 +471,15 @@ export default function TechnicianVerificationsScreen() {
                 <Text style={styles.detailSectionTitle}>Guarantor Information</Text>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Name</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.guarantor_name}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.guarantor_name}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Phone</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.guarantor_phone}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.guarantor_phone}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Address</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.guarantor_address}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.guarantor_address}</Text>
                 </View>
               </View>
 
@@ -449,40 +488,40 @@ export default function TechnicianVerificationsScreen() {
                 <Text style={styles.detailSectionTitle}>Bank Information</Text>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Bank Name</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.bank_name}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.bank_name}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Account Number</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.account_number}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.account_number}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Account Name</Text>
-                  <Text style={styles.detailValue}>{selectedVerification.account_name}</Text>
+                  <Text style={styles.detailValue}>{selectedTechnician.account_name}</Text>
                 </View>
               </View>
 
               {/* Status */}
               <View style={styles.detailSection}>
                 <Text style={styles.detailSectionTitle}>Status</Text>
-                <View style={[styles.statusBadgeLarge, { backgroundColor: getStatusColor(selectedVerification.status) + '20' }]}>
-                  <Text style={[styles.statusTextLarge, { color: getStatusColor(selectedVerification.status) }]}>
-                    {selectedVerification.status.charAt(0).toUpperCase() + selectedVerification.status.slice(1)}
+                <View style={[styles.statusBadgeLarge, { backgroundColor: getStatusColor(selectedTechnician.status) + '20' }]}>
+                  <Text style={[styles.statusTextLarge, { color: getStatusColor(selectedTechnician.status) }]}>
+                    {selectedTechnician.status.charAt(0).toUpperCase() + selectedTechnician.status.slice(1)}
                   </Text>
                 </View>
-                {selectedVerification.rejection_reason && (
+                {selectedTechnician.rejection_reason && (
                   <View style={styles.rejectionReasonBox}>
                     <Text style={styles.rejectionReasonLabel}>Rejection Reason:</Text>
-                    <Text style={styles.rejectionReasonText}>{selectedVerification.rejection_reason}</Text>
+                    <Text style={styles.rejectionReasonText}>{selectedTechnician.rejection_reason}</Text>
                   </View>
                 )}
               </View>
 
               {/* Actions */}
-              {selectedVerification.status === 'pending' && (
+              {selectedTechnician.status === 'pending' && (
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={[styles.modalActionButton, styles.modalApproveButton]}
-                    onPress={() => handleApprove(selectedVerification)}
+                    onPress={() => handleApprove(selectedTechnician)}
                     disabled={processing}
                   >
                     {processing ? (
@@ -496,7 +535,7 @@ export default function TechnicianVerificationsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalActionButton, styles.modalRejectButton]}
-                    onPress={() => handleReject(selectedVerification)}
+                    onPress={() => handleReject(selectedTechnician)}
                     disabled={processing}
                   >
                     <Ionicons name="close-circle" size={24} color="#fff" />
@@ -518,11 +557,11 @@ export default function TechnicianVerificationsScreen() {
       >
         <View style={styles.rejectModalOverlay}>
           <View style={styles.rejectModalContent}>
-            <Text style={styles.rejectModalTitle}>Reject Verification</Text>
+            <Text style={styles.rejectModalTitle}>Reject Technician</Text>
             <Text style={styles.rejectModalSubtitle}>
               Please provide a reason for rejection (this will be sent to the technician)
             </Text>
-            
+
             <TextInput
               style={styles.rejectInput}
               placeholder="Enter rejection reason..."
@@ -626,7 +665,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexGrow: 1
   },
-  verificationCard: {
+  technicianCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
@@ -639,22 +678,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2
   },
-  verificationHeader: {
+  technicianHeader: {
+    flexDirection: 'row'
+  },
+  technicianHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12
   },
-  verificationInfo: {
+  technicianInfo: {
     flex: 1
   },
-  verificationName: {
+  technicianName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4
   },
-  verificationPhone: {
+  technicianPhone: {
     fontSize: 14,
     color: colors.textSecondary
   },
@@ -667,7 +709,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600'
   },
-  verificationDetails: {
+  technicianDetails: {
     gap: 8,
     marginBottom: 12
   },
@@ -680,7 +722,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary
   },
-  verificationActions: {
+  technicianActions: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 12,
@@ -833,7 +875,7 @@ const styles = StyleSheet.create({
   },
   modalActionButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#fff'
   },
   rejectModalOverlay: {
@@ -852,9 +894,8 @@ const styles = StyleSheet.create({
   },
   rejectModalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8
+    fontWeight: 700,
+    color: colors.text
   },
   rejectModalSubtitle: {
     fontSize: 14,

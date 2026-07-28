@@ -175,7 +175,7 @@ export class AuthSessionManager {
   /**
    * Get user role from current session
    */
-  public async getUserRole(): Promise<'customer' | 'technician' | null> {
+  public async getUserRole(): Promise<'customer' | 'technician' | 'admin' | null> {
     const session = await this.getCurrentSession()
     return session?.user.role || null
   }

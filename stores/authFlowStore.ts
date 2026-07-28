@@ -20,7 +20,7 @@ export type AuthStep =
 /**
  * User role
  */
-export type UserRole = 'customer' | 'technician'
+export type UserRole = 'customer' | 'technician' | 'admin'
 
 /**
  * Basic profile data

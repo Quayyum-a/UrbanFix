@@ -52,13 +52,23 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="verifications"
+        name="technician-management"
         options={{
-          title: 'Verifications',
+          title: 'Technician Management',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shield-checkmark-outline" size={size} color={color} />
           ),
           tabBarBadge: undefined // Can be updated with pending count
+        }}
+      />
+      <Tabs.Screen
+        name="reviews-management"
+        options={{
+          title: 'Reviews',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles" size={size} color={color} />
+          ),
+          tabBarBadge: undefined // Could show count of flagged reviews
         }}
       />
       <Tabs.Screen

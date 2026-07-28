@@ -33,9 +33,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // Route protected areas to the matching role's home if roles mismatch
     if (currentRoute.startsWith('/customer') && role !== 'customer') {
-      router.replace(role === 'technician' ? '/technician' : '/auth/login')
+      if (role === 'technician') router.replace('/technician')
+      else if (role === 'admin') router.replace('/admin')
+      else router.replace('/auth/login')
     } else if (currentRoute.startsWith('/technician') && role !== 'technician') {
-      router.replace(role === 'customer' ? '/customer' : '/auth/login')
+      if (role === 'customer') router.replace('/customer')
+      else if (role === 'admin') router.replace('/admin')
+      else router.replace('/auth/login')
+    } else if (currentRoute.startsWith('/admin') && role !== 'admin') {
+      if (role === 'customer') router.replace('/customer')
+      else if (role === 'technician') router.replace('/technician')
+      else router.replace('/auth/login')
     }
   }, [isAuthenticated, role, segments, router, initialized, loading])
 

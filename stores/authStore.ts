@@ -36,6 +36,7 @@ interface AuthState {
 
 interface AuthActions {
   // Authentication actions
+  setPhoneForAuth: (phone: string) => void // Just store the phone, don't change step
   checkPhone: (phone: string) => Promise<AuthResult>
   submitPIN: (pin: string) => Promise<AuthResult>
   selectRole: (role: UserRole) => void
@@ -72,30 +73,52 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isNewUser: false,
   error: null,
 
-  // Check whether a phone number belongs to a returning user (has a PIN) or a new one
+  // Check whether a phone number belongs to a returning user (exists in users table) or is new
   checkPhone: async (phone: string): Promise<AuthResult> => {
     try {
       set({ isAuthenticating: true, error: null })
 
+      console.log('[AUTH] checkPhone called with:', phone)
+
       const validation = phoneValidator.validate(phone)
+      console.log('[AUTH] Phone validation result:', validation)
+
       if (!validation.isValid) {
         const errorMessage = validation.error || 'Invalid phone number'
+        console.log('[AUTH] Phone validation failed:', errorMessage)
         set({ error: errorMessage, isAuthenticating: false })
         return { success: false, error: errorMessage }
       }
 
       const formattedPhone = validation.formatted!
-      const pinExists = await pinAuthService.isPINExists(formattedPhone)
+      console.log('[AUTH] Formatted phone:', formattedPhone)
+
+      // Check if user exists in users table (not user_pins)
+      // Use limit(1) instead of .single() to avoid error when no results
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('phone', formattedPhone)
+        .limit(1)
+
+      const existingUser = users && users.length > 0 ? users[0] : null
+      console.log('[AUTH] User lookup - exists:', !!existingUser, 'error:', userError?.message)
+
+      // If user exists, they are a returning user
+      const isReturningUser = !!existingUser
+
+      console.log('[AUTH] isNewUser:', !isReturningUser)
 
       set({
         phoneNumber: formattedPhone,
-        isNewUser: !pinExists,
+        isNewUser: !isReturningUser,
         authStep: 'pin',
         isAuthenticating: false
       })
 
-      return { success: true, isNewUser: !pinExists }
+      return { success: true, isNewUser: !isReturningUser }
     } catch (error) {
+      console.error('[AUTH] checkPhone error:', error)
       const errorMessage = 'Network error. Please try again.'
       set({ error: errorMessage, isAuthenticating: false })
       return { success: false, error: errorMessage }
@@ -216,28 +239,71 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
 
       if (role === 'customer') {
-        // Prepare location value if coordinates provided
-        let locationValue: any = null
-        if (typeof latitude === 'number' && typeof longitude === 'number') {
-          // Attempt to create a PostGIS point string.
-          // Note: This is a simplified approach; in production you would use
-          // a proper GIS library or backend function.
-          locationValue = `POINT(${longitude} ${latitude})`
+        // For customers, create a profile with address info
+        // Database constraint requires address >= 10 chars OR NULL
+        let addressValue = address && address.trim() ? address.trim() : null
+
+        // If address too short, expand it to meet constraint
+        if (addressValue && addressValue.length < 10) {
+          addressValue = addressValue + ', Nigeria - Awaiting detailed address'
+        }
+
+        // If no address provided, use descriptive default
+        if (!addressValue) {
+          addressValue = 'Address to be updated by user during onboarding'
+        }
+
+        console.log('[AUTH] Creating customer profile with address:', addressValue, 'length:', addressValue.length)
+
+        const profileData: any = {
+          user_id: userRow.id,
+          address_text: addressValue,
+          onboarding_completed: false
+        }
+
+        if (latitude !== undefined && longitude !== undefined) {
+          profileData.location = `POINT(${longitude} ${latitude})`
+          console.log('[AUTH] Storing location:', profileData.location)
         }
 
         const { error: profileError } = await supabase
           .from('customer_profiles')
-          .insert({
-            user_id: userRow.id,
-            location: locationValue,
-            address_text: address ?? null
-          } as Database['public']['Tables']['customer_profiles']['Insert'])
+          .insert(profileData)
 
         if (profileError) {
+          console.error('[AUTH] Customer profile creation error:', profileError)
           const errorMessage = 'Failed to create customer profile. Please try again.'
           set({ error: errorMessage, isAuthenticating: false })
           return { success: false, error: errorMessage }
         }
+
+        console.log('[AUTH] Customer profile created successfully')
+      } else if (role === 'technician') {
+        // For technicians, create a basic profile (will be completed during onboarding)
+        console.log('[AUTH] Creating technician profile for user:', userRow.id)
+
+        const { error: profileError } = await supabase
+          .from('technician_profiles')
+          .insert({
+            user_id: userRow.id,
+            nin: '',  // Will be filled during onboarding
+            shop_address: '',  // Will be filled during onboarding
+            bank_name: '',  // Will be filled during onboarding
+            bank_account_number: '',  // Will be filled during onboarding
+            bank_account_name: '',  // Will be filled during onboarding
+            paystack_recipient_code: null,
+            verification_status: 'pending',
+            is_available: false
+          } as any)
+
+        if (profileError) {
+          console.error('[AUTH] Technician profile creation error:', profileError)
+          const errorMessage = 'Failed to create technician profile. Please try again.'
+          set({ error: errorMessage, isAuthenticating: false })
+          return { success: false, error: errorMessage }
+        }
+
+        console.log('[AUTH] Technician profile created successfully')
       }
 
       await authSessionManager.createSession(
