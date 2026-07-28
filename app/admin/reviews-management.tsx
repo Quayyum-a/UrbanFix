@@ -87,33 +87,47 @@ export default function ReviewsManagementScreen() {
     try {
       setLoading(true)
 
-      const { data, error } = await supabase
+      // Fetch reviews with related data
+      const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select(`
-          id,
-          job_id,
-          reviewer_id,
-          reviewee_id,
-          rating,
-          comment,
-          created_at,
-          users!reviews_reviewer_id_fkey (
-            full_name
-          ),
-          users!reviews_reviewee_id_fkey (
-            full_name
-          ),
-          jobs!reviews_job_id_fkey (
-            device_brand,
-            device_model,
-            repair_category
-          )
-        `)
+        .select('id, job_id, reviewer_id, reviewee_id, rating, comment, created_at, is_hidden, flagged, moderated_by, moderated_at, moderation_note, response, responded_by, responded_at')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (reviewsError) throw reviewsError
 
-      const formatted = data?.map((r: any) => ({
+      if (!reviewsData) {
+        setReviews([])
+        return
+      }
+
+      // Fetch all related users in one query
+      const userIds = new Set<string>()
+      reviewsData.forEach(r => {
+        userIds.add(r.reviewer_id)
+        userIds.add(r.reviewee_id)
+      })
+
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', Array.from(userIds))
+
+      if (usersError) throw usersError
+
+      const userMap = new Map(usersData?.map(u => [u.id, u.full_name]) || [])
+
+      // Fetch all related jobs in one query
+      const jobIds = new Set(reviewsData.map(r => r.job_id))
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('jobs')
+        .select('id, device_brand, device_model, repair_category')
+        .in('id', Array.from(jobIds))
+
+      if (jobsError) throw jobsError
+
+      const jobMap = new Map(jobsData?.map(j => [j.id, j]) || [])
+
+      const formatted = reviewsData.map(r => ({
         id: r.id,
         job_id: r.job_id,
         reviewer_id: r.reviewer_id,
@@ -121,12 +135,20 @@ export default function ReviewsManagementScreen() {
         rating: r.rating,
         comment: r.comment,
         created_at: r.created_at,
-        reviewer_name: r.users?.[0]?.full_name,
-        reviewee_name: r.users?.[1]?.full_name,
-        job_device_brand: r.jobs?.[0]?.device_brand,
-        job_device_model: r.jobs?.[0]?.device_model,
-        job_repair_category: r.jobs?.[0]?.repair_category
-      })) || []
+        is_hidden: r.is_hidden,
+        flagged: r.flagged,
+        moderated_by: r.moderated_by,
+        moderated_at: r.moderated_at,
+        moderation_note: r.moderation_note,
+        response: r.response,
+        responded_by: r.responded_by,
+        responded_at: r.responded_at,
+        reviewer_name: userMap.get(r.reviewer_id),
+        reviewee_name: userMap.get(r.reviewee_id),
+        job_device_brand: jobMap.get(r.job_id)?.device_brand,
+        job_device_model: jobMap.get(r.job_id)?.device_model,
+        job_repair_category: jobMap.get(r.job_id)?.repair_category
+      }))
 
       setReviews(formatted)
     } catch (error) {
@@ -165,13 +187,13 @@ export default function ReviewsManagementScreen() {
         setFilteredReviews(reviews)
         break
       case 'visible':
-        setFilteredReviews(reviews.filter(r => !r.is_hidden))
+        setFilteredReviews(reviews.filter(r => r.is_hidden !== true))
         break
       case 'hidden':
-        setFilteredReviews(reviews.filter(r => r.is_hidden))
+        setFilteredReviews(reviews.filter(r => r.is_hidden === true))
         break
       case 'flagged':
-        setFilteredReviews(reviews.filter(r => r.flagged))
+        setFilteredReviews(reviews.filter(r => r.flagged === true))
         break
     }
   }
@@ -396,16 +418,6 @@ export default function ReviewsManagementScreen() {
       case 'hidden': return 'Hidden'
       case 'flagged': return 'Flagged'
       default: return 'Reviews'
-    }
-  }
-
-  const getFilterLabelForTab = (filter: FilterType): string => {
-    switch (filter) {
-      case 'all': return 'All'
-      case 'visible': return 'Visible'
-      case 'hidden': return 'Hidden'
-      case 'flagged': return 'Flagged'
-      default: return 'All'
     }
   }
 
@@ -636,7 +648,7 @@ export default function ReviewsManagementScreen() {
               {getActionDescription()}
             </Text>
 
-            {actionType === 'hide' || actionType === 'flag' && (
+            {(actionType === 'hide' || actionType === 'flag') && (
               <View style={styles.noteContainer}>
                 <Text style={styles.noteLabel}>Optional Note:</Text>
                 <TextInput
