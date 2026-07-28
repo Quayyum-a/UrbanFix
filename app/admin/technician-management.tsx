@@ -28,17 +28,17 @@ interface TechnicianVerification {
   user_id: string
   full_name: string
   phone: string
+  avatar_url?: string
   nin: string
-  nin_document_url: string
-  guarantor_name: string
-  guarantor_phone: string
-  guarantor_address: string
+  nin_doc_url?: string
+  shop_address: string
   bank_name: string
   account_number: string
   account_name: string
   status: 'pending' | 'approved' | 'rejected'
-  submitted_at: string
+  created_at: string
   rejection_reason?: string
+  is_available: boolean
 }
 
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected'
@@ -79,64 +79,55 @@ export default function TechnicianManagementScreen() {
     try {
       setLoading(true)
 
-      const { data, error } = await supabase
-        .from('technician_verifications')
-        .select(`
-          id,
-          user_id,
-          nin,
-          bank_name,
-          account_number,
-          account_name,
-          status,
-          rejection_reason,
-          submitted_at,
-          users!technician_verifications_user_id_fkey (
-            full_name,
-            phone
-          )
-        `)
-        .order('submitted_at', { ascending: false })
+      // Query technician_profiles which has the actual verification data
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('technician_profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (profilesError) throw profilesError
 
-      if (!data) {
+      if (!profilesData || profilesData.length === 0) {
         setTechnicians([])
         return
       }
 
-      // Fetch NIN documents separately
-      const verificationIds = data.map(t => t.id)
-      const { data: docsData } = await supabase
-        .from('verification_documents')
-        .select('verification_id, file_url, document_type')
-        .in('verification_id', verificationIds)
-        .eq('document_type', 'id_card')
+      // Get user info for all technicians
+      const userIds = profilesData.map(p => p.user_id)
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name, phone, avatar_url')
+        .in('id', userIds)
 
-      const docMap = new Map(docsData?.map(d => [d.verification_id, d.file_url]) || [])
+      if (usersError) throw usersError
 
-      const formatted = data.map((t: any) => ({
-        id: t.id,
-        user_id: t.user_id,
-        full_name: t.users?.[0]?.full_name || 'Unknown',
-        phone: t.users?.[0]?.phone || 'N/A',
-        nin: t.nin,
-        nin_document_url: docMap.get(t.id),
-        guarantor_name: 'Not provided',
-        guarantor_phone: 'Not provided',
-        guarantor_address: 'Not available',
-        bank_name: t.bank_name || 'Not provided',
-        account_number: t.account_number || 'Not provided',
-        account_name: t.account_name || 'Not provided',
-        status: t.status,
-        rejection_reason: t.rejection_reason,
-        submitted_at: t.submitted_at
-      }))
+      const userMap = new Map(usersData?.map(u => [u.id, u]) || [])
+
+      const formatted = profilesData.map((profile: any) => {
+        const user = userMap.get(profile.user_id)
+        return {
+          id: profile.id,
+          user_id: profile.user_id,
+          full_name: user?.full_name || 'Unknown',
+          phone: user?.phone || 'N/A',
+          avatar_url: user?.avatar_url,
+          nin: profile.nin,
+          nin_doc_url: profile.nin_doc_url,
+          shop_address: profile.shop_address || 'Not provided',
+          bank_name: profile.bank_name || 'Not provided',
+          account_number: profile.bank_account_number || 'Not provided',
+          account_name: profile.bank_account_name || 'Not provided',
+          status: profile.verification_status,
+          rejection_reason: profile.rejection_reason,
+          created_at: profile.created_at,
+          is_available: profile.is_available
+        }
+      })
 
       setTechnicians(formatted)
     } catch (error) {
-      console.error('Error loading technicians for approval:', error)
-      Alert.alert('Error', 'Failed to load technicians for approval')
+      console.error('Error loading technicians:', error)
+      Alert.alert('Error', 'Failed to load technicians')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -317,51 +308,42 @@ export default function TechnicianManagementScreen() {
       onPress={() => setSelectedTechnician(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.technicianHeader}>
+      <View style={styles.cardContent}>
+        {item.avatar_url ? (
+          <Image
+            source={{ uri: item.avatar_url }}
+            style={styles.avatarImage}
+          />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Ionicons name="person-circle" size={56} color="#ccc" />
+          </View>
+        )}
+
         <View style={styles.technicianInfo}>
           <Text style={styles.technicianName}>{item.full_name}</Text>
-          <Text style={styles.technicianPhone}>{item.phone}</Text>
+          <Text style={styles.technicianShop} numberOfLines={1}>{item.shop_address}</Text>
+          <View style={styles.timeInfo}>
+            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.timeText}>{formatDate(item.created_at)}</Text>
+          </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.technicianDetails}>
-        <View style={styles.detailRow}>
-          <Ionicons name="card-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.detailText}>NIN: {item.nin}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.detailText}>{item.bank_name}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.detailText}>{formatDate(item.submitted_at)}</Text>
-        </View>
+        {item.status === 'pending' ? (
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={() => setSelectedTechnician(item)}
+          >
+            <Text style={styles.reviewButtonText}>Review</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={[styles.statusBadgeSmall, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+            <Text style={[styles.statusTextSmall, { color: getStatusColor(item.status) }]}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
+          </View>
+        )}
       </View>
-
-      {item.status === 'pending' && (
-        <View style={styles.technicianActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.approveButton]}
-            onPress={() => handleApprove(item)}
-          >
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Approve</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.rejectButton]}
-            onPress={() => handleReject(item)}
-          >
-            <Ionicons name="close-circle" size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Reject</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </TouchableOpacity>
   )
 
@@ -679,37 +661,79 @@ const styles = StyleSheet.create({
   technicianCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#e2e8f0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
+    shadowRadius: 2,
+    elevation: 1
   },
-  technicianHeader: {
-    flexDirection: 'row'
-  },
-  technicianHeader: {
+  cardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12
+    alignItems: 'center',
+    padding: 14,
+    gap: 12
+  },
+  avatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f0f4f8'
+  },
+  avatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f0f4f8',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   technicianInfo: {
     flex: 1
   },
   technicianName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4
+    color: '#191c1e',
+    marginBottom: 2
   },
-  technicianPhone: {
+  technicianShop: {
+    fontSize: 12,
+    color: '#434653',
+    marginBottom: 6
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  timeText: {
+    fontSize: 11,
+    color: '#737685'
+  },
+  reviewButton: {
+    backgroundColor: '#0047bb',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  reviewButtonText: {
     fontSize: 14,
-    color: colors.textSecondary
+    fontWeight: '600',
+    color: '#fff'
+  },
+  statusBadgeSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8
+  },
+  statusTextSmall: {
+    fontSize: 11,
+    fontWeight: '600'
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -719,47 +743,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600'
-  },
-  technicianDetails: {
-    gap: 8,
-    marginBottom: 12
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  detailText: {
-    fontSize: 13,
-    color: colors.textSecondary
-  },
-  technicianActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8
-  },
-  approveButton: {
-    backgroundColor: colors.success
-  },
-  rejectButton: {
-    backgroundColor: colors.error
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff'
   },
   emptyState: {
     flex: 1,
