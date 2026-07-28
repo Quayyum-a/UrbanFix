@@ -47,58 +47,66 @@ export default function AdminDashboard() {
   const loadDashboardStats = async () => {
     try {
       setLoading(true)
+      let stats = {
+        pending_verifications: 0,
+        pending_part_requests: 0,
+        active_disputes: 0,
+        total_jobs: 0,
+        total_revenue: 0,
+        active_technicians: 0,
+        active_customers: 0
+      }
 
       // Get pending verifications count
-      const { count: verifications } = await supabase
+      const { count: verifications, error: verError } = await supabase
         .from('technician_verifications')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending')
+      if (!verError) stats.pending_verifications = verifications || 0
 
-      // Get pending part requests count
-      const { count: partRequests } = await supabase
+      // Get pending part requests count (may not exist yet)
+      const { count: partRequests, error: partError } = await supabase
         .from('parts_requests')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending')
+      if (!partError) stats.pending_part_requests = partRequests || 0
 
-      // Get active disputes count
-      const { count: disputes } = await supabase
+      // Get active disputes count (may not exist yet)
+      const { count: disputes, error: dispError } = await supabase
         .from('disputes')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending')
+      if (!dispError) stats.active_disputes = disputes || 0
 
       // Get total jobs count
-      const { count: totalJobs } = await supabase
+      const { count: totalJobs, error: jobError } = await supabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
+      if (!jobError) stats.total_jobs = totalJobs || 0
 
       // Get active technicians count
-      const { count: activeTechs } = await supabase
+      const { count: activeTechs, error: techError } = await supabase
         .from('technician_profiles')
         .select('id', { count: 'exact', head: true })
         .eq('verification_status', 'approved')
+      if (!techError) stats.active_technicians = activeTechs || 0
 
       // Get active customers count
-      const { count: activeCustomers } = await supabase
+      const { count: activeCustomers, error: custError } = await supabase
         .from('customer_profiles')
         .select('id', { count: 'exact', head: true })
+      if (!custError) stats.active_customers = activeCustomers || 0
 
       // Calculate total revenue (sum of completed job payments)
-      const { data: revenueData } = await supabase
+      const { data: revenueData, error: revError } = await supabase
         .from('jobs')
         .select('total_price')
-        .in('status', ['completed', 'payment_released'])
+        .in('status', ['complete', 'paid'])
+      if (!revError && revenueData) {
+        stats.total_revenue = revenueData.reduce((sum, job) => sum + (job.total_price || 0), 0)
+      }
 
-      const totalRevenue = revenueData?.reduce((sum, job) => sum + (job.total_price || 0), 0) || 0
-
-      setStats({
-        pending_verifications: verifications || 0,
-        pending_part_requests: partRequests || 0,
-        active_disputes: disputes || 0,
-        total_jobs: totalJobs || 0,
-        total_revenue: totalRevenue,
-        active_technicians: activeTechs || 0,
-        active_customers: activeCustomers || 0
-      })
+      setStats(stats)
     } catch (error) {
       console.error('Error loading dashboard stats:', error)
     } finally {
@@ -154,7 +162,7 @@ export default function AdminDashboard() {
         
         <TouchableOpacity
           style={[styles.actionCard, styles.urgentCard]}
-          onPress={() => router.push('/admin/verifications')}
+          onPress={() => router.push('/admin/technician-management')}
           activeOpacity={0.7}
         >
           <View style={styles.actionIcon}>
@@ -262,7 +270,7 @@ export default function AdminDashboard() {
 
         <TouchableOpacity
           style={styles.quickActionButton}
-          onPress={() => router.push('/admin/verifications')}
+          onPress={() => router.push('/admin/technician-management')}
         >
           <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
           <Text style={styles.quickActionText}>Manage Technicians</Text>
