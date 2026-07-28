@@ -85,10 +85,9 @@ export default function TechnicianManagementScreen() {
           id,
           user_id,
           nin,
-          nin_document_url,
           guarantor_name,
           guarantor_phone,
-          guarantor_address,
+          guarantor_email,
           bank_name,
           account_number,
           account_name,
@@ -104,23 +103,38 @@ export default function TechnicianManagementScreen() {
 
       if (error) throw error
 
-      const formatted = data?.map((t: any) => ({
+      if (!data) {
+        setTechnicians([])
+        return
+      }
+
+      // Fetch NIN documents separately
+      const verificationIds = data.map(t => t.id)
+      const { data: docsData } = await supabase
+        .from('verification_documents')
+        .select('verification_id, file_url, document_type')
+        .in('verification_id', verificationIds)
+        .eq('document_type', 'id_card')
+
+      const docMap = new Map(docsData?.map(d => [d.verification_id, d.file_url]) || [])
+
+      const formatted = data.map((t: any) => ({
         id: t.id,
         user_id: t.user_id,
         full_name: t.users?.[0]?.full_name || 'Unknown',
         phone: t.users?.[0]?.phone || 'N/A',
         nin: t.nin,
-        nin_document_url: t.nin_document_url,
-        guarantor_name: t.guarantor_name,
-        guarantor_phone: t.guarantor_phone,
-        guarantor_address: t.guarantor_address,
-        bank_name: t.bank_name,
-        account_number: t.account_number,
-        account_name: t.account_name,
+        nin_document_url: docMap.get(t.id),
+        guarantor_name: t.guarantor_name || 'Not provided',
+        guarantor_phone: t.guarantor_phone || 'Not provided',
+        guarantor_address: 'Not available',
+        bank_name: t.bank_name || 'Not provided',
+        account_number: t.account_number || 'Not provided',
+        account_name: t.account_name || 'Not provided',
         status: t.status,
         rejection_reason: t.rejection_reason,
         submitted_at: t.submitted_at
-      })) || []
+      }))
 
       setTechnicians(formatted)
     } catch (error) {

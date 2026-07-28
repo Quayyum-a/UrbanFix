@@ -3,7 +3,8 @@
 
 import React, { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { SafeAreaView, StatusBar, View, Text, Pressable, StyleSheet, Alert } from 'react-native'
+import { StatusBar, View, Text, Pressable, StyleSheet, Alert } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { PhoneInput } from '@/components/auth/PhoneInput'
 import { PINInput } from '@/components/auth/PINInput'
