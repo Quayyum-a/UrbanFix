@@ -152,25 +152,54 @@ export default function AdminDashboard() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Admin Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Platform Overview & Management</Text>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <Text style={styles.headerSubtitle}>Admin Dashboard</Text>
       </View>
 
-      {/* Pending Actions Section */}
+      {/* Stats Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Pending Actions</Text>
-        
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: '#d0e1fb' }]}>
+              <Ionicons name="construct" size={22} color="#0047bb" />
+            </View>
+            <Text style={styles.statValue}>{stats.active_technicians}</Text>
+            <Text style={styles.statLabel}>Active Techs</Text>
+            <Text style={styles.statMeta}>
+              <Ionicons name="radio-button-on" size={10} color="#0047bb" /> Online
+            </Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: '#f0f4f8' }]}>
+              <Ionicons name="people" size={22} color="#0047bb" />
+            </View>
+            <Text style={styles.statValue}>{stats.active_customers}</Text>
+            <Text style={styles.statLabel}>Total Customers</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Pending Actions */}
+      <View style={styles.section}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={styles.sectionTitle}>Pending Actions</Text>
+          <TouchableOpacity onPress={() => router.push('/admin/technician-management')}>
+            <Text style={{ fontSize: 12, color: '#0047bb', fontWeight: '600' }}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={[styles.actionCard, styles.urgentCard]}
           onPress={() => router.push('/admin/technician-management')}
           activeOpacity={0.7}
         >
-          <View style={styles.actionIcon}>
-            <Ionicons name="shield-checkmark" size={24} color={colors.error} />
+          <View style={[styles.actionIcon, styles.primaryIconBg]}>
+            <Ionicons name="shield-checkmark" size={22} color="#fff" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Technician Verifications</Text>
-            <Text style={styles.actionDescription}>Pending approval required</Text>
+            <Text style={styles.actionDescription}>Credentials awaiting review</Text>
           </View>
           <View style={styles.actionBadge}>
             <Text style={styles.actionBadgeText}>{stats.pending_verifications}</Text>
@@ -182,12 +211,12 @@ export default function AdminDashboard() {
           onPress={() => router.push('/admin/part-requests')}
           activeOpacity={0.7}
         >
-          <View style={styles.actionIcon}>
-            <Ionicons name="cube" size={24} color={colors.primary} />
+          <View style={[styles.actionIcon, styles.secondaryIconBg]}>
+            <Ionicons name="cube" size={22} color="#0047bb" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Part Requests</Text>
-            <Text style={styles.actionDescription}>New parts for review</Text>
+            <Text style={styles.actionDescription}>Awaiting quote approval</Text>
           </View>
           <View style={styles.actionBadge}>
             <Text style={styles.actionBadgeText}>{stats.pending_part_requests}</Text>
@@ -195,20 +224,16 @@ export default function AdminDashboard() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionCard, stats.active_disputes > 0 && styles.urgentCard]}
+          style={styles.actionCard}
           onPress={() => router.push('/admin/disputes')}
           activeOpacity={0.7}
         >
-          <View style={styles.actionIcon}>
-            <Ionicons 
-              name="alert-circle" 
-              size={24} 
-              color={stats.active_disputes > 0 ? colors.error : colors.warning} 
-            />
+          <View style={[styles.actionIcon, styles.tertiaryIconBg]}>
+            <Ionicons name="gavel" size={22} color="#832700" />
           </View>
           <View style={styles.actionContent}>
             <Text style={styles.actionTitle}>Active Disputes</Text>
-            <Text style={styles.actionDescription}>Require resolution</Text>
+            <Text style={styles.actionDescription}>Escalated by customer/technician</Text>
           </View>
           <View style={styles.actionBadge}>
             <Text style={styles.actionBadgeText}>{stats.active_disputes}</Text>
@@ -216,65 +241,32 @@ export default function AdminDashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Platform Statistics */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Platform Statistics</Text>
-        
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="briefcase-outline" size={28} color={colors.primary} />
-            </View>
-            <Text style={styles.statValue}>{stats.total_jobs}</Text>
-            <Text style={styles.statLabel}>Total Jobs</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: colors.success + '20' }]}>
-              <Ionicons name="cash-outline" size={28} color={colors.success} />
-            </View>
-            <Text style={styles.statValue}>{formatCurrency(stats.total_revenue)}</Text>
-            <Text style={styles.statLabel}>Total Revenue</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: colors.secondary + '20' }]}>
-              <Ionicons name="construct-outline" size={28} color={colors.secondary} />
-            </View>
-            <Text style={styles.statValue}>{stats.active_technicians}</Text>
-            <Text style={styles.statLabel}>Active Technicians</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: colors.info + '20' }]}>
-              <Ionicons name="people-outline" size={28} color={colors.info} />
-            </View>
-            <Text style={styles.statValue}>{stats.active_customers}</Text>
-            <Text style={styles.statLabel}>Active Customers</Text>
-          </View>
-        </View>
-      </View>
-
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => router.push('/admin/analytics')}
-        >
-          <Ionicons name="bar-chart" size={20} color={colors.primary} />
-          <Text style={styles.quickActionText}>View Detailed Analytics</Text>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.quickActionButton}
           onPress={() => router.push('/admin/technician-management')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
-          <Text style={styles.quickActionText}>Manage Technicians</Text>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          <View style={styles.quickActionContent}>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.quickActionButtonText}>Manage Technicians</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickActionButton, styles.quickActionButtonSecondary]}
+          onPress={() => router.push('/admin/analytics')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.quickActionContent}>
+            <Ionicons name="analytics" size={20} color="#0047bb" />
+            <Text style={[styles.quickActionButtonText, styles.quickActionButtonTextSecondary]}>View Analytics</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#0047bb" />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -284,17 +276,17 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: '#f7f9fb'
   },
   content: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background
+    backgroundColor: '#f7f9fb'
   },
   loadingText: {
     fontSize: 14,
@@ -305,93 +297,37 @@ const styles = StyleSheet.create({
     marginBottom: 24
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#191c1e',
     marginBottom: 4
   },
   headerSubtitle: {
     fontSize: 14,
-    color: colors.textSecondary
+    color: '#434653'
   },
   section: {
-    marginBottom: 32
+    marginBottom: 24
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  urgentCard: {
-    borderColor: colors.error,
-    borderWidth: 2
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12
-  },
-  actionContent: {
-    flex: 1
-  },
-  actionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2
-  },
-  actionDescription: {
-    fontSize: 13,
-    color: colors.textSecondary
-  },
-  actionBadge: {
-    backgroundColor: colors.error,
-    borderRadius: 16,
-    minWidth: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10
-  },
-  actionBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff'
+    color: '#191c1e',
+    marginBottom: 12
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12
+    gap: 12,
+    marginBottom: 8
   },
   statCard: {
     flex: 1,
-    minWidth: '45%',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#e2e8f0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -399,39 +335,117 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   statIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12
+    marginBottom: 10,
+    backgroundColor: '#f0f4f8'
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4
+    color: '#191c1e',
+    marginBottom: 2
   },
   statLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontSize: 12,
+    color: '#434653',
     textAlign: 'center'
+  },
+  statMeta: {
+    fontSize: 11,
+    color: '#737685',
+    textAlign: 'center',
+    marginTop: 6,
+    fontWeight: '500'
+  },
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
+  },
+  urgentCard: {
+    borderColor: '#ba1a1a',
+    borderWidth: 2
+  },
+  actionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
+  },
+  primaryIconBg: {
+    backgroundColor: '#0047bb'
+  },
+  secondaryIconBg: {
+    backgroundColor: '#d0e1fb'
+  },
+  tertiaryIconBg: {
+    backgroundColor: '#ffdbcf'
+  },
+  actionContent: {
+    flex: 1
+  },
+  actionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#191c1e',
+    marginBottom: 2
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: '#434653'
+  },
+  actionBadge: {
+    backgroundColor: '#ba1a1a',
+    borderRadius: 12,
+    minWidth: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8
+  },
+  actionBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff'
   },
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
+    justifyContent: 'space-between',
+    backgroundColor: '#0047bb',
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border
+    paddingVertical: 16
   },
-  quickActionText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text,
-    marginLeft: 12
+  quickActionButtonSecondary: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#0047bb'
+  },
+  quickActionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8
+  },
+  quickActionButtonTextSecondary: {
+    color: '#0047bb'
+  },
+  quickActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
   }
 })
