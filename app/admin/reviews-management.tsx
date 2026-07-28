@@ -90,7 +90,7 @@ export default function ReviewsManagementScreen() {
       // Fetch reviews with related data
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select('id, job_id, reviewer_id, reviewee_id, rating, comment, created_at, is_hidden, flagged, moderated_by, moderated_at, moderation_note, response, responded_by, responded_at')
+        .select('id, job_id, reviewer_id, reviewee_id, rating, comment, created_at')
         .order('created_at', { ascending: false })
 
       if (reviewsError) throw reviewsError
@@ -135,14 +135,14 @@ export default function ReviewsManagementScreen() {
         rating: r.rating,
         comment: r.comment,
         created_at: r.created_at,
-        is_hidden: r.is_hidden,
-        flagged: r.flagged,
-        moderated_by: r.moderated_by,
-        moderated_at: r.moderated_at,
-        moderation_note: r.moderation_note,
-        response: r.response,
-        responded_by: r.responded_by,
-        responded_at: r.responded_at,
+        is_hidden: false,
+        flagged: false,
+        moderated_by: undefined,
+        moderated_at: undefined,
+        moderation_note: undefined,
+        response: undefined,
+        responded_by: undefined,
+        responded_at: undefined,
         reviewer_name: userMap.get(r.reviewer_id),
         reviewee_name: userMap.get(r.reviewee_id),
         job_device_brand: jobMap.get(r.job_id)?.device_brand,
@@ -421,6 +421,46 @@ export default function ReviewsManagementScreen() {
     }
   }
 
+  const getActionTitle = (): string => {
+    switch (actionType) {
+      case 'hide': return 'Hide Review'
+      case 'unhide': return 'Unhide Review'
+      case 'flag': return 'Flag Review'
+      case 'unflag': return 'Unflag Review'
+      default: return 'Action'
+    }
+  }
+
+  const getActionDescription = (): string => {
+    switch (actionType) {
+      case 'hide': return 'Hide this review from public view. It will still be accessible in the admin panel.'
+      case 'unhide': return 'Make this review visible to the public again.'
+      case 'flag': return 'Mark this review for further investigation.'
+      case 'unflag': return 'Remove the flag from this review.'
+      default: return 'Confirm this action.'
+    }
+  }
+
+  const getActionConfirmationText = (): string => {
+    switch (actionType) {
+      case 'hide': return 'Hide Review'
+      case 'unhide': return 'Unhide Review'
+      case 'flag': return 'Flag Review'
+      case 'unflag': return 'Unflag Review'
+      default: return 'Confirm'
+    }
+  }
+
+  const getFilterLabelForTab = (filter: FilterType): string => {
+    switch (filter) {
+      case 'all': return 'All'
+      case 'visible': return 'Visible'
+      case 'hidden': return 'Hidden'
+      case 'flagged': return 'Flagged'
+      default: return 'All'
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -693,47 +733,6 @@ export default function ReviewsManagementScreen() {
       </Modal>
     </View>
   )
-}
-
-// Helper functions
-const getFilterLabelForTab = (filter: FilterType): string => {
-  switch (filter) {
-    case 'all': return 'All'
-    case 'visible': return 'Visible'
-    case 'hidden': return 'Hidden'
-    case 'flagged': return 'Flagged'
-    default: return 'All'
-  }
-}
-
-const getActionTitle = (): string => {
-  switch (actionType) {
-    case 'hide': return 'Hide Review'
-    case 'unhide': return 'Unhide Review'
-    case 'flag': return 'Flag Review'
-    case 'unflag': return 'Unflag Review'
-    default: return 'Action'
-  }
-}
-
-const getActionDescription = (): string => {
-  switch (actionType) {
-    case 'hide': return 'Hide this review from public view. It will still be accessible in the admin panel.'
-    case 'unhide': return 'Make this review visible to the public again.'
-    case 'flag': return 'Mark this review for further investigation.'
-    case 'unflag': return 'Remove the flag from this review.'
-    default: return 'Confirm this action.'
-  }
-}
-
-const getActionConfirmationText = (): string => {
-  switch (actionType) {
-    case 'hide': return 'Hide Review'
-    case 'unhide': return 'Unhide Review'
-    case 'flag': return 'Flag Review'
-    case 'unflag': return 'Unflag Review'
-    default: return 'Confirm'
-  }
 }
 
 const styles = StyleSheet.create({

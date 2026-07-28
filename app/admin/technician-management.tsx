@@ -95,7 +95,7 @@ export default function TechnicianManagementScreen() {
           status,
           rejection_reason,
           submitted_at,
-          users!inner (
+          users!technician_verifications_user_id_fkey (
             full_name,
             phone
           )
@@ -107,8 +107,8 @@ export default function TechnicianManagementScreen() {
       const formatted = data?.map((t: any) => ({
         id: t.id,
         user_id: t.user_id,
-        full_name: t.users.full_name,
-        phone: t.users.phone,
+        full_name: t.users?.[0]?.full_name || 'Unknown',
+        phone: t.users?.[0]?.phone || 'N/A',
         nin: t.nin,
         nin_document_url: t.nin_document_url,
         guarantor_name: t.guarantor_name,
