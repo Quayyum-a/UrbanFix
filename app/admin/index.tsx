@@ -57,11 +57,11 @@ export default function AdminDashboard() {
         active_customers: 0
       }
 
-      // Get pending verifications count
+      // Get pending verifications count from technician_profiles
       const { count: verifications, error: verError } = await supabase
-        .from('technician_verifications')
+        .from('technician_profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending')
+        .eq('verification_status', 'pending')
       if (!verError) stats.pending_verifications = verifications || 0
 
       // Get pending part requests count (may not exist yet)
