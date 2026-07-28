@@ -84,17 +84,18 @@ export default function AdminDashboard() {
         .select('id', { count: 'exact', head: true })
       if (!jobError) stats.total_jobs = totalJobs || 0
 
-      // Get active technicians count
+      // Get active technicians count (from users table, not just profiles)
       const { count: activeTechs, error: techError } = await supabase
-        .from('technician_profiles')
+        .from('users')
         .select('id', { count: 'exact', head: true })
-        .eq('verification_status', 'approved')
+        .eq('role', 'technician')
       if (!techError) stats.active_technicians = activeTechs || 0
 
-      // Get active customers count
+      // Get active customers count (from users table)
       const { count: activeCustomers, error: custError } = await supabase
-        .from('customer_profiles')
+        .from('users')
         .select('id', { count: 'exact', head: true })
+        .eq('role', 'customer')
       if (!custError) stats.active_customers = activeCustomers || 0
 
       // Calculate total revenue (sum of completed job payments)
