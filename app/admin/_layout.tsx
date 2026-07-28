@@ -11,8 +11,8 @@ import { TouchableOpacity, View, Text, StyleSheet } from 'react-native'
 
 export default function AdminLayout() {
   const userProfile = useAuthStore(state => state.userProfile)
+  const signOut = useAuthStore(state => state.signOut)
   const router = useRouter()
-  const { logout } = useAuthStore()
 
   // Protect admin routes - only allow admin role
   if (!userProfile || userProfile.role !== 'admin') {
@@ -21,7 +21,7 @@ export default function AdminLayout() {
 
   const handleSignout = async () => {
     try {
-      await logout()
+      await signOut()
       router.replace('/auth/login')
     } catch (error) {
       console.error('Signout error:', error)
