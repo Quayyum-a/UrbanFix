@@ -2,7 +2,7 @@
 // numbers enter it once. The PIN pad submits on the 6th digit.
 import { Redirect } from 'expo-router'
 import React, { useEffect, useRef, useState } from 'react'
-import { Linking, Text, View } from 'react-native'
+import { Alert, Linking, Text, View } from 'react-native'
 import { PinPad } from '@/components/PinPad'
 import { Banner, Button, Field, P, Screen, Small, Title } from '@/components/ui'
 import { colors, spacing } from '@/constants/theme'
@@ -14,6 +14,20 @@ type Step = 'phone' | 'enter' | 'create' | 'confirm'
 
 const LOCK_AFTER = 5
 const LOCK_SECONDS = 60
+const clock = () => Date.now()
+const SUPPORT_WHATSAPP = (process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP ?? '').replace(/[^0-9]/g, '')
+
+function forgotPin(e164: string) {
+  const text = `Hi UrbanFix, I forgot my PIN. My number is ${displayPhone(e164)}.`
+  if (!SUPPORT_WHATSAPP) {
+    Alert.alert('Forgot your PIN?', 'Contact UrbanFix support from this phone number and we will reset it for you.')
+    return
+  }
+  Alert.alert('Forgot your PIN?', 'Message UrbanFix support on WhatsApp from this phone number. We will reset it for you.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Open WhatsApp', onPress: () => void Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(text)}`) },
+  ])
+}
 
 export default function SignIn() {
   const { status, profile } = useSession()
@@ -25,7 +39,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null)
   const [failures, setFailures] = useState(0)
   const [lockedUntil, setLockedUntil] = useState(0)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(clock)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const e164 = normalizePhone(phone)
@@ -33,7 +47,7 @@ export default function SignIn() {
 
   useEffect(() => {
     if (!locked) return
-    timer.current = setInterval(() => setNow(Date.now()), 1000)
+    timer.current = setInterval(() => setNow(clock()), 1000)
     return () => { if (timer.current) clearInterval(timer.current) }
   }, [locked])
 
@@ -89,7 +103,8 @@ export default function SignIn() {
       setFailures(n)
       setPin('')
       if (msg === 'Wrong PIN. Try again.' && n >= LOCK_AFTER) {
-        setLockedUntil(Date.now() + LOCK_SECONDS * 1000); setNow(Date.now())
+        const t = clock()
+        setLockedUntil(t + LOCK_SECONDS * 1000); setNow(t)
         setError(`Too many wrong PINs. Wait ${LOCK_SECONDS} seconds.`)
       } else {
         setError(msg === 'Wrong PIN. Try again.' ? `Wrong PIN. ${LOCK_AFTER - n} tries left before a short lock.` : msg)
@@ -143,7 +158,7 @@ export default function SignIn() {
       <View style={{ marginTop: spacing.xl }}>
         <Button title="Use a different number" kind="ghost" onPress={back} />
         {step === 'enter' ? (
-          <Button title="Forgot PIN?" kind="ghost" onPress={() => void Linking.openURL('https://wa.me/?text=' + encodeURIComponent(`Hi UrbanFix, I forgot my PIN for ${displayPhone(e164)}`))} />
+          <Button title="Forgot PIN?" kind="ghost" onPress={() => forgotPin(e164!)} />
         ) : null}
       </View>
     </Screen>

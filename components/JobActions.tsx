@@ -235,11 +235,10 @@ function AdminActions({ d, onChanged, actions }: Props & { actions: string[] }) 
   const [rejecting, setRejecting] = useState(false)
   const [bank, setBank] = useState<TechnicianPrivate | null>(null)
 
+  const needsBank = actions.includes('admin_payout')
   useEffect(() => {
-    if (actions.includes('admin_payout')) {
-      api.adminTechnicianDetails(job.technician_id).then((r) => setBank(r?.private ?? null)).catch(() => {})
-    }
-  }, [job.technician_id, actions.join()])
+    if (needsBank) api.adminTechnicianDetails(job.technician_id).then((r) => setBank(r?.private ?? null)).catch(() => {})
+  }, [needsBank, job.technician_id])
 
   return (
     <View>

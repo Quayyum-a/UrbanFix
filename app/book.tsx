@@ -37,7 +37,6 @@ export default function Book() {
   useEffect(() => {
     if (!category) return
     let live = true
-    setTechs(null); setError(null)
     findTechnicians(device, category)
       .then((t) => { if (live) setTechs(t) })
       .catch((e) => { if (live) { setTechs([]); setError(friendlyError(e)) } })
@@ -46,6 +45,7 @@ export default function Book() {
 
   if (guard) return guard
 
+  const chooseProblem = (c: string | null) => { setTechs(null); setError(null); setCategory(c) }
   const title = `Fix my ${deviceLabel(device).toLowerCase()}`
 
   // Step 1: what's wrong
@@ -55,7 +55,7 @@ export default function Book() {
         <Stack.Screen options={{ title }} />
         <Title sub="Tap the closest match. You can add details later.">What's wrong?</Title>
         {REPAIRS[device].map((r) => (
-          <Choice key={r.category} testID={`problem-${r.category}`} title={r.label} onPress={() => setCategory(r.category)} />
+          <Choice key={r.category} testID={`problem-${r.category}`} title={r.label} onPress={() => chooseProblem(r.category)} />
         ))}
       </Screen>
     )
@@ -67,7 +67,7 @@ export default function Book() {
       <Screen edges={['left', 'right']}>
         <Stack.Screen options={{ title }} />
         <Title sub={repairLabel(device, category)}>Choose a technician</Title>
-        <Button title="Change problem" kind="ghost" icon="arrow-back" onPress={() => setCategory(null)} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
+        <Button title="Change problem" kind="ghost" icon="arrow-back" onPress={() => chooseProblem(null)} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
         <ErrorText error={error} />
         {techs === null ? <Loading label="Finding technicians near you" /> : techs.length === 0 ? (
           <Empty icon="search-outline" title="No technicians available for this yet"

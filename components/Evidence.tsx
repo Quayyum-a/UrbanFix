@@ -1,20 +1,20 @@
 // Shows the intake and repair records with their photos (private, signed links).
 import React, { useEffect, useState } from 'react'
-import { Image, Modal, Pressable, StyleSheet, View } from 'react-native'
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Card, Row, Small } from '@/components/ui'
 import { colors, font, radius, spacing } from '@/constants/theme'
 import { signedUrls } from '@/lib/photos'
 import type { Job } from '@/lib/types'
-import { Text } from 'react-native'
 
 function Photos({ paths }: { paths: string[] }) {
   const [urls, setUrls] = useState<Record<string, string>>({})
   const [open, setOpen] = useState<string | null>(null)
+  const key = paths.join('|')
   useEffect(() => {
     let live = true
-    signedUrls('job-photos', paths).then((u) => { if (live) setUrls(u) })
+    signedUrls('job-photos', key ? key.split('|') : []).then((u) => { if (live) setUrls(u) })
     return () => { live = false }
-  }, [paths.join('|')])
+  }, [key])
   return (
     <>
       <View style={styles.grid}>

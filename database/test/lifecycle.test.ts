@@ -290,3 +290,12 @@ describe('reviews', () => {
     await expectFail(db.as(stranger).rpc('submit_review', [j.id, 1, 'fake review']), 'Repair not found')
   })
 })
+
+test('photo checks also work when Storage only records owner_id (newer Supabase)', async () => {
+  const c = await db.customer()
+  const j = await db.paidJob(c, tech, admin)
+  await db.as(tech).upload('job-photos', `${j.id}/new-style.jpg`)
+  await db.root.query('UPDATE storage.objects SET owner = NULL WHERE name = $1', [`${j.id}/new-style.jpg`])
+  const r = await db.as(tech).one('record_intake', [j.id, VALID_IMEI, null, [`${j.id}/new-style.jpg`]])
+  expect(r.status).toBe('in_repair')
+})

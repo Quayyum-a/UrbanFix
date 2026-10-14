@@ -12,8 +12,12 @@ CREATE SCHEMA auth;
 CREATE TABLE auth.users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text UNIQUE,
+  encrypted_password text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Supabase installs pgcrypto in the "extensions" schema.
+CREATE SCHEMA extensions;
+CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
   SELECT nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid
 $$;
@@ -33,6 +37,7 @@ CREATE TABLE storage.objects (
   bucket_id text REFERENCES storage.buckets(id),
   name text NOT NULL,
   owner uuid DEFAULT auth.uid(),
+  owner_id text DEFAULT auth.uid()::text,
   created_at timestamptz DEFAULT now(),
   UNIQUE (bucket_id, name)
 );

@@ -24,6 +24,9 @@ export function friendlyError(err: unknown): string {
   }
   if (/invalid login credentials/i.test(msg)) return 'Wrong PIN. Try again.'
   if (/user already registered/i.test(msg)) return 'This number already has an account. Enter your PIN instead.'
+  if (/email address .*invalid|email_address_invalid/i.test(msg)) {
+    return 'Sign-up is blocked by a Supabase email setting: turn off "Confirm email" and extended email validation (see the setup guide).'
+  }
   if (/email not confirmed/i.test(msg)) {
     return 'Sign-up needs one setting changed: turn off "Confirm email" in Supabase (see the setup guide).'
   }

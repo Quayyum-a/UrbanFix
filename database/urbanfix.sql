@@ -373,7 +373,8 @@ BEGIN
       PERFORM public._fail('Invalid photo.');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM storage.objects o
-                   WHERE o.bucket_id = 'job-photos' AND o.name = p AND o.owner = p_uid) THEN
+                   WHERE o.bucket_id = 'job-photos' AND o.name = p
+                     AND (o.owner = p_uid OR o.owner_id = p_uid::text)) THEN
       PERFORM public._fail('A photo didn''t finish uploading. Please try again.');
     END IF;
   END LOOP;
@@ -574,7 +575,8 @@ BEGIN
   IF p_document_path IS NULL OR p_document_path !~ ('^' || v_uid::text || '/[A-Za-z0-9_-]{1,64}\.(jpg|jpeg|png)$') THEN
     PERFORM public._fail('Upload a photo of your ID.');
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM storage.objects WHERE bucket_id = 'id-documents' AND name = p_document_path AND owner = v_uid) THEN
+  IF NOT EXISTS (SELECT 1 FROM storage.objects WHERE bucket_id = 'id-documents' AND name = p_document_path
+                 AND (owner = v_uid OR owner_id = v_uid::text)) THEN
     PERFORM public._fail('Your ID photo didn''t finish uploading. Please try again.');
   END IF;
   UPDATE public.technician_private SET nin = v_nin, id_document_path = p_document_path WHERE id = v_uid;
@@ -1081,6 +1083,23 @@ BEGIN
   RETURN pr;
 END $$;
 
+-- Support tool: reset a user's PIN when they forget it. Run in the SQL editor
+-- after confirming who they are (e.g. they message from that same number):
+--   SELECT public.reset_pin('08012345678', '482915');
+CREATE FUNCTION public.reset_pin(p_phone text, p_new_pin text) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions, pg_temp AS $$
+DECLARE v text := public._normalize_phone(p_phone); n int;
+BEGIN
+  IF v IS NULL THEN PERFORM public._fail('Invalid phone number.'); END IF;
+  IF p_new_pin IS NULL OR p_new_pin !~ '^[0-9]{6}$' THEN PERFORM public._fail('The new PIN must be 6 digits.'); END IF;
+  UPDATE auth.users
+     SET encrypted_password = extensions.crypt('uf1:' || p_new_pin || ':' || substr(v, 2), extensions.gen_salt('bf'))
+   WHERE email = substr(v, 2) || '@phone.urbanfix.app';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n = 0 THEN PERFORM public._fail('No account with that phone number.'); END IF;
+  RETURN 'PIN reset. Ask them to sign in with the new PIN, then keep it private.';
+END $$;
+
 -- ---------------------------------------------------------------------------
 -- 9. Row level security (read access only)
 -- ---------------------------------------------------------------------------
@@ -1218,3 +1237,6 @@ TO authenticated;
 
 GRANT EXECUTE ON FUNCTION public.storage_can_upload_job_photo(text), public.storage_can_upload_id_document(text),
                           public._safe_uuid(text) TO authenticated;
+
+-- Tell the Supabase API to pick up the new schema immediately.
+NOTIFY pgrst, 'reload schema';

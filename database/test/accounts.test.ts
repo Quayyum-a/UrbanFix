@@ -1,4 +1,4 @@
-import fc from 'fast-check'
+import * as fc from 'fast-check'
 import { Db, expectFail, randomPhone, User } from './harness'
 
 let db: Db
@@ -132,4 +132,22 @@ describe('make_admin', () => {
 test('test database matches Supabase text handling (UTF-8)', async () => {
   const { rows } = await db.root.query('SHOW server_encoding')
   expect(rows[0].server_encoding).toBe('UTF8')
+})
+
+describe('reset_pin (support tool, SQL editor only)', () => {
+  test('sets a new PIN that Supabase Auth will accept, and cannot be called from the app', async () => {
+    const u = await db.customer()
+    await expectFail(db.as(u).sql("SELECT public.reset_pin($1, '482915')", [u.phone]), /permission denied/)
+    await db.root.query("SELECT public.reset_pin($1, '482915')", [u.phone.replace('+234', '0')])
+    const { rows } = await db.root.query(
+      'SELECT extensions.crypt($2, encrypted_password) = encrypted_password AS ok FROM auth.users WHERE id = $1',
+      [u.id, `uf1:482915:${u.phone.slice(1)}`])
+    expect(rows[0].ok).toBe(true)
+  })
+
+  test('validates input', async () => {
+    await expectFail(db.root.query("SELECT public.reset_pin('123', '482915')"), 'Invalid phone')
+    await expectFail(db.root.query("SELECT public.reset_pin('08031112222', '12ab56')"), '6 digits')
+    await expectFail(db.root.query("SELECT public.reset_pin('08031112222', '482915')"), 'No account')
+  })
 })

@@ -2,7 +2,7 @@
 // Each section saves on its own, so it can be finished in several sittings.
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Text, View } from 'react-native'
 import { PhotoPicker } from '@/components/PhotoPicker'
 import { Banner, Button, Card, Chips, ErrorText, Field, Loading, Screen, Small, Title } from '@/components/ui'
@@ -29,49 +29,45 @@ function Section({ n, title, done, open, onOpen, children }: {
   )
 }
 
+type MyTechnician = NonNullable<ReturnType<typeof useMyTechnician>['data']>
+
 export default function TechnicianSetup() {
   const guard = useRoleGuard('technician')
+  const { data, error, reload } = useMyTechnician()
+  if (guard) return guard
+  if (!data) return <Screen>{error ? <ErrorText error={error} /> : <Loading />}</Screen>
+  return <SetupForm data={data} reload={reload} />
+}
+
+function firstOpenSection(d: MyTechnician): number {
+  const p = setupProgress(d)
+  if (!p.shop) return 1
+  if (!p.services) return 2
+  if (!p.bank) return 3
+  if (!p.identity) return 4
+  return 0
+}
+
+function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boolean) => Promise<void> }) {
   const profile = useSession((s) => s.profile)
-  const { data, error: loadError, reload } = useMyTechnician()
   const progress = setupProgress(data)
-  const editable = data ? ['draft', 'pending', 'rejected'].includes(data.tech.status) : false
-  const [open, setOpen] = useState<number>(1)
+  const editable = ['draft', 'pending', 'rejected'].includes(data.tech.status)
+  const [open, setOpen] = useState<number>(() => firstOpenSection(data))
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // shop
-  const [shopName, setShopName] = useState('')
-  const [shopAddress, setShopAddress] = useState('')
-  const [area, setArea] = useState<string | null>(profile?.area ?? 'Ikeja')
-  const [bio, setBio] = useState('')
-  // services
+  // Form fields start from what's saved; later reloads don't overwrite typing.
+  const [shopName, setShopName] = useState(data.tech.shop_name ?? '')
+  const [shopAddress, setShopAddress] = useState(data.tech.shop_address ?? '')
+  const [area, setArea] = useState<string | null>(data.tech.area ?? profile?.area ?? 'Ikeja')
+  const [bio, setBio] = useState(data.tech.bio ?? '')
   const [device, setDevice] = useState<DeviceType>('smartphone')
   const [prices, setPrices] = useState<Record<string, string>>({})
-  // bank
-  const [bank, setBank] = useState<string | null>(null)
-  const [acct, setAcct] = useState('')
-  const [acctName, setAcctName] = useState(profile?.full_name ?? '')
-  // identity
-  const [nin, setNin] = useState('')
-  const [idDoc, setIdDoc] = useState<string[]>([])
-
-  useEffect(() => {
-    if (!data) return
-    setShopName((v) => v || (data.tech.shop_name ?? ''))
-    setShopAddress((v) => v || (data.tech.shop_address ?? ''))
-    setArea((v) => data.tech.area ?? v)
-    setBio((v) => v || (data.tech.bio ?? ''))
-    setBank((v) => v ?? data.priv?.bank_name ?? null)
-    setAcct((v) => v || (data.priv?.account_number ?? ''))
-    setAcctName((v) => data.priv?.account_name ?? v)
-    setNin((v) => v || (data.priv?.nin ?? ''))
-    setIdDoc((v) => (v.length ? v : data.priv?.id_document_path ? [data.priv.id_document_path] : []))
-    const p = setupProgress(data)
-    setOpen((o) => (o === 1 && p.shop ? (p.services ? (p.bank ? (p.identity ? 0 : 4) : 3) : 2) : o))
-  }, [data])
-
-  if (guard) return guard
-  if (!data) return <Screen>{loadError ? <ErrorText error={loadError} /> : <Loading />}</Screen>
+  const [bank, setBank] = useState<string | null>(data.priv?.bank_name ?? null)
+  const [acct, setAcct] = useState(data.priv?.account_number ?? '')
+  const [acctName, setAcctName] = useState(data.priv?.account_name ?? profile?.full_name ?? '')
+  const [nin, setNin] = useState(data.priv?.nin ?? '')
+  const [idDoc, setIdDoc] = useState<string[]>(data.priv?.id_document_path ? [data.priv.id_document_path] : [])
 
   const save = async (key: string, fn: () => Promise<unknown>, next?: number): Promise<boolean> => {
     setBusy(key); setError(null)

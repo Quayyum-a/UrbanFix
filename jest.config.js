@@ -9,6 +9,7 @@ module.exports = {
       displayName: 'app',
       preset: 'jest-expo',
       roots: ['<rootDir>/__tests__'],
+      testMatch: ['**/*.test.ts', '**/*.test.tsx'],
       setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
       moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },
     },
