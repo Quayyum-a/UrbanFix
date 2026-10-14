@@ -2,58 +2,27 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@/stores/*": [
-        "./stores/*"
-      ],
-      "@/constants/*": [
-        "./constants/*"
-      ],
-      "@/types/*": [
-        "./types/*"
       ]
-    }
+    },
+    "types": [
+      "jest",
+      "node"
+    ]
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    "**/*.spec.ts",
-    "**/*.test.ts"
+    "node_modules"
   ]
 }

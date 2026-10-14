@@ -6,21 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#031636"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.urbanfix.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "UrbanFix needs your location to find nearby technicians and provide pickup/delivery services.",
-        "NSCameraUsageDescription": "UrbanFix needs camera access to take photos of devices for repair documentation.",
-        "NSPhotoLibraryUsageDescription": "UrbanFix needs photo library access to upload images of devices for repair documentation."
+        "NSCameraUsageDescription": "UrbanFix uses the camera to photograph devices at drop-off and after repair, and to capture technician ID documents.",
+        "NSPhotoLibraryUsageDescription": "UrbanFix lets you choose existing photos of a device or ID document."
       }
     },
     "android": {
@@ -30,11 +21,7 @@
       },
       "package": "com.urbanfix.app",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "CAMERA"
       ]
     },
     "web": {
@@ -44,29 +31,29 @@
     "plugins": [
       "expo-router",
       [
-        "expo-location",
+        "expo-splash-screen",
         {
-          "locationAlwaysAndWhenInUsePermission": "UrbanFix needs your location to find nearby technicians and provide pickup/delivery services."
+          "image": "./assets/splash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#031636"
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "UrbanFix needs photo library access to upload images of devices for repair documentation.",
-          "cameraPermission": "UrbanFix needs camera access to take photos of devices for repair documentation."
+          "photosPermission": "UrbanFix lets you choose existing photos of a device or ID document.",
+          "cameraPermission": "UrbanFix uses the camera to photograph devices at drop-off and after repair, and to capture technician ID documents."
         }
-      ],
-      "expo-font",
-      "expo-web-browser"
+      ]
     ],
     "scheme": "urbanfix",
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "your-eas-project-id"
       }
+    },
+    "experiments": {
+      "typedRoutes": false
     }
   }
 }
