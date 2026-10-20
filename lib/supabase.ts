@@ -1,23 +1,17 @@
-// Supabase client singleton as specified in Engineering Guide Section 3.1
-
-import { createClient } from '@supabase/supabase-js'
+import 'react-native-url-polyfill/auto'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import type { Database } from '@/types/database.types'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { AppState, Platform } from 'react-native'
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''
+const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
-if (!supabaseUrl) {
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL environment variable')
-}
+/** False when .env is missing; the app shows setup instructions instead of crashing. */
+export const isConfigured = /^https:\/\/.+/.test(url) && anonKey.length > 20
 
-if (!supabaseAnonKey) {
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_ANON_KEY environment variable')
-}
-
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey,
+export const supabase: SupabaseClient = createClient(
+  isConfigured ? url : 'https://not-configured.supabase.co',
+  isConfigured ? anonKey : 'not-configured',
   {
     auth: {
       storage: AsyncStorage,
@@ -25,5 +19,13 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: false,
     },
-  }
+  },
 )
+
+// Refresh the session only while the app is in the foreground (Supabase's RN guidance).
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh()
+    else supabase.auth.stopAutoRefresh()
+  })
+}

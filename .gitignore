@@ -73,3 +73,9 @@ coverage/
 
 # EAS
 .easignore
+# local env and test output
+.env
+.env.local
+coverage/
+.expo/
+dist/
