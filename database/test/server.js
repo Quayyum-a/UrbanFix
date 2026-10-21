@@ -46,6 +46,11 @@ async function start() {
   await c.connect()
   await c.query(fs.readFileSync(path.join(__dirname, 'supabase-shim.sql'), 'utf8'))
   await c.query(fs.readFileSync(path.join(ROOT, 'database', 'urbanfix.sql'), 'utf8'))
+  // Then every migration, in order, exactly as they're run in the SQL editor.
+  const migrations = path.join(ROOT, 'database', 'migrations')
+  for (const f of fs.readdirSync(migrations).filter((n) => n.endsWith('.sql')).sort()) {
+    await c.query(fs.readFileSync(path.join(migrations, f), 'utf8'))
+  }
   await c.end()
 
   fs.writeFileSync(STATE_FILE, JSON.stringify({ port, dir }))
