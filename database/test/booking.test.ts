@@ -57,6 +57,46 @@ describe('grade_options', () => {
     const rows = await db.as(c).rpc('grade_options', [await db.modelId('iPhone 16 Pro Max'), 'screen_replacement'])
     expect(rows.map((r) => r.part_kobo)).toEqual([null, null, null])
   })
+
+  test('wording fits the part: no screen talk for batteries, keyboards or other parts', async () => {
+    const c = await db.customer()
+    const x = await db.modelId('iPhone X')
+    const { rows: laptops } = await db.root.query("SELECT id FROM public.device_models WHERE device_type = 'laptop' LIMIT 1")
+    const { rows: options } = await db.root.query("SELECT device_type, category FROM public.repair_options WHERE part_mode <> 'none'")
+    for (const o of options) {
+      const model = o.device_type === 'smartphone' ? x : o.device_type === 'laptop' ? Number(laptops[0].id) : null
+      const rows = await db.as(c).rpc('grade_options', [model, o.category])
+      expect(rows).toHaveLength(3)
+      for (const r of rows) {
+        expect(r.description).toBeTruthy()
+        if (o.category !== 'screen_replacement') expect(r.description).not.toMatch(/screen|oled|incell|panel/i)
+      }
+      // Each grade reads differently.
+      expect(new Set(rows.map((r) => r.description)).size).toBe(3)
+    }
+  })
+
+  test('battery grades describe batteries; phone screens keep the screen wording', async () => {
+    const c = await db.customer()
+    const x = await db.modelId('iPhone 7')
+    const bat = await db.as(c).rpc('grade_options', [x, 'battery_replacement'])
+    expect(bat.every((r) => /battery/i.test(r.description))).toBe(true)
+    const scr = await db.as(c).rpc('grade_options', [x, 'screen_replacement'])
+    expect(scr.find((r) => r.grade === 'premium')!.description).toMatch(/GX OLED/)
+    // A laptop screen, or an unlisted model, does not get the phone-only GX OLED wording.
+    const { rows: lap } = await db.root.query("SELECT id FROM public.device_models WHERE device_type = 'laptop' LIMIT 1")
+    for (const m of [Number(lap[0].id), null]) {
+      const rows = await db.as(c).rpc('grade_options', [m, 'screen_replacement'])
+      expect(rows.every((r) => !/OLED/.test(r.description))).toBe(true)
+    }
+  })
+
+  test('the fallback wording and the wording table are not readable or editable by app users', async () => {
+    const c = await db.customer()
+    await expect(db.as(c).sql('SELECT * FROM public.part_grade_texts')).rejects.toThrow(/permission/)
+    await expect(db.as(c).sql("UPDATE public.part_grades SET description = 'x'")).rejects.toThrow(/permission/)
+    await expect(db.as(c).sql("SELECT public._grade_text('smartphone', 'battery_replacement', 'standard')")).rejects.toThrow(/permission/)
+  })
 })
 
 describe('find_technicians', () => {

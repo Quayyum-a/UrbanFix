@@ -64,7 +64,7 @@ function PriceRow({ row, onSaved }: { row: PriceBoardRow; onSaved: () => void })
         <View style={{ marginTop: spacing.sm }}>
           <Field label="Part price (₦)" keyboardType="number-pad" value={price} onChangeText={(t) => setPrice(t.replace(/[^0-9]/g, '').slice(0, 7))}
             error={price ? priceProblem(price) : null} testID="edit-price" />
-          <Field label="Part type shown to customers (optional)" placeholder="e.g. Incell, JK, GX OLED" value={label} onChangeText={setLabel} maxLength={40} />
+          <Field label="Part type shown to customers (optional)" placeholder={row.category === 'screen_replacement' ? 'e.g. Incell, JK, GX OLED' : row.category === 'battery_replacement' ? 'e.g. Standard cell, High capacity' : 'e.g. Compatible, Original'} value={label} onChangeText={setLabel} maxLength={40} />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             <Button style={{ flex: 1 }} title="Save" disabled={!price || !!priceProblem(price)} loading={busy}
               onPress={() => void save(parseNairaToKobo(price)!, label)} testID="save-price" />

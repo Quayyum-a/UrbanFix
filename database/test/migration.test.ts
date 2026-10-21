@@ -16,6 +16,9 @@ test('running every migration again changes nothing you set', async () => {
   await db.as(tech).rpc('save_service', ['smartphone', 'screen_replacement', 1_200_000, true])
   const x = await db.modelId('iPhone X')
   await db.as(admin).rpc('admin_set_part_price', [x, 'screen_replacement', 'standard', 1_600_000, 'Incell'])
+  // Wording edited by the team after 005 must survive a re-run.
+  await db.root.query("UPDATE public.part_grade_texts SET description = 'Our own battery wording.' WHERE device_type = '' AND category = 'battery_replacement' AND grade = 'high'")
+  await db.root.query("UPDATE public.part_grades SET description = 'Our own fallback.' WHERE grade = 'premium'")
   const before = await db.root.query('SELECT count(*)::int AS n FROM public.device_models')
 
   for (const f of fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter((n) => n.endsWith('.sql')).sort()) {
@@ -26,6 +29,12 @@ test('running every migration again changes nothing you set', async () => {
   expect(fee.rows[0].price_kobo).toBe(1_200_000)
   const price = await db.root.query("SELECT price_kobo, source FROM public.part_prices WHERE model_id = $1 AND category = 'screen_replacement' AND grade = 'standard'", [x])
   expect(price.rows[0]).toEqual({ price_kobo: 1_600_000, source: 'admin' })
+  const kept = await db.root.query("SELECT description FROM public.part_grade_texts WHERE device_type = '' AND category = 'battery_replacement' AND grade = 'high'")
+  expect(kept.rows[0].description).toBe('Our own battery wording.')
+  const fb = await db.root.query("SELECT description FROM public.part_grades WHERE grade = 'premium'")
+  expect(fb.rows[0].description).toBe('Our own fallback.')
+  const texts = await db.root.query('SELECT count(*)::int AS n FROM public.part_grade_texts')
+  expect(texts.rows[0].n).toBeGreaterThan(30)
   const after = await db.root.query('SELECT count(*)::int AS n FROM public.device_models')
   expect(after.rows[0].n).toBe(before.rows[0].n)
 })
