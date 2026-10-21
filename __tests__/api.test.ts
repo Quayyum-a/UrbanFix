@@ -14,6 +14,10 @@ describe('friendlyError', () => {
     [{ message: 'User already registered' }, 'This number already has an account. Enter your PIN instead.'],
     [{ message: 'JWT expired' }, 'Your session expired. Please sign in again.'],
     [{ message: 'permission denied for table jobs' }, "You don't have access to that."],
+    [{ status: 422, code: 'email_provider_disabled', message: 'Email logins are disabled' },
+      'Sign-in is blocked by a Supabase setting: turn on the Email provider in Authentication → Sign In / Providers (see the setup guide).'],
+    [{ status: 400, code: 'email_provider_disabled', message: 'Email signups are disabled' },
+      'Sign-in is blocked by a Supabase setting: turn on the Email provider in Authentication → Sign In / Providers (see the setup guide).'],
     [{ code: '23514', message: 'new row violates check constraint "payout_math"' }, 'Something went wrong. Please try again.'],
     [null, 'Something went wrong. Please try again.'],
   ])('%p', (err, msg) => expect(api.friendlyError(err)).toBe(msg))
