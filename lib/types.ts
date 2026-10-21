@@ -3,8 +3,10 @@
 export type Role = 'customer' | 'technician' | 'admin'
 export type TechStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'suspended'
 export type JobStatus =
-  | 'requested' | 'accepted' | 'declined' | 'cancelled' | 'payment_submitted' | 'paid'
-  | 'in_repair' | 'awaiting_confirmation' | 'completed' | 'disputed' | 'refunded'
+  | 'requested' | 'accepted' | 'quoted' | 'declined' | 'cancelled' | 'payment_submitted' | 'paid'
+  | 'in_repair' | 'awaiting_confirmation' | 'completed' | 'warranty' | 'disputed' | 'refunded'
+export type Grade = 'standard' | 'high' | 'premium'
+export type PartMode = 'catalog' | 'inspection' | 'none'
 export type ServiceMode = 'visit' | 'drop_off'
 export type PayoutStatus = 'not_due' | 'due' | 'paid'
 
@@ -53,11 +55,61 @@ export interface TechnicianMatch {
   area: string | null
   shop_address: string | null
   bio: string | null
-  price_kobo: number
+  part_kobo: number
+  service_charge_kobo: number
+  total_kobo: number
+  part_pending: boolean
   rating: string | number | null
   reviews: number
   jobs_done: number
   used_before: boolean
+}
+
+export interface DeviceBrand {
+  device_type: string
+  brand: string
+  label: string
+  is_android: boolean
+  sort_order: number
+}
+
+export interface DeviceModel {
+  id: number
+  device_type: string
+  brand: string
+  name: string
+  hint: string | null
+  sort_order: number
+}
+
+export interface GradeOption {
+  grade: Grade
+  label: string
+  description: string
+  warranty_days: number
+  market_label: string | null
+  part_kobo: number | null
+  price_updated_at: string | null
+}
+
+export interface PriceBoardRow {
+  model_id: number
+  model_name: string
+  category: string
+  category_label: string
+  grade: Grade
+  grade_label: string
+  price_kobo: number | null
+  market_label: string | null
+  source: string | null
+  updated_at: string | null
+  stale: boolean
+  obs_count: number | null
+  obs_low_kobo: number | null
+  obs_median_kobo: number | null
+  obs_high_kobo: number | null
+  obs_url: string | null
+  obs_date: string | null
 }
 
 export interface Job {
@@ -73,8 +125,28 @@ export interface Job {
   service_mode: ServiceMode
   address: string | null
   price_kobo: number
-  commission_kobo: number
-  payout_kobo: number
+  /** Hidden from customers. */
+  commission_kobo?: number
+  /** Hidden from customers. */
+  payout_kobo?: number
+  /** Hidden from customers. */
+  labour_kobo?: number
+  model_id: number | null
+  grade: Grade | null
+  part_label: string | null
+  part_kobo: number
+  part_pending: boolean
+  estimate_kobo: number
+  price_confirmed: boolean
+  quoted_at: string | null
+  part_payout_status?: PayoutStatus
+  warranty_days: number
+  warranty_until: string | null
+  warranty_reason: string | null
+  warranty_claimed_at: string | null
+  warranty_notes: string | null
+  warranty_photos: string[]
+  warranty_done_at: string | null
   is_repeat: boolean
   status: JobStatus
   status_note: string | null
@@ -93,7 +165,7 @@ export interface Job {
   completed_by: string | null
   dispute_reason: string | null
   refund_reference: string | null
-  payout_status: PayoutStatus
+  payout_status?: PayoutStatus
   payout_reference?: string | null
   created_at: string
   updated_at: string
@@ -115,9 +187,25 @@ export interface Review {
   created_at: string
 }
 
+export interface Breakdown {
+  part_kobo: number
+  part_pending: boolean
+  part_label: string | null
+  grade: Grade | null
+  grade_label: string | null
+  grade_description: string | null
+  service_charge_kobo: number
+  total_kobo: number
+  estimate_kobo: number
+  price_confirmed: boolean
+  warranty_days: number
+  warranty_until: string | null
+}
+
 export interface JobDetails {
   job: Job
   viewer_role: Role
+  breakdown: Breakdown
   customer: { name: string; phone: string | null }
   technician: { name: string; shop_name: string | null; shop_address: string | null; area: string | null; phone: string | null }
   events: JobEvent[]
@@ -135,7 +223,8 @@ export interface JobSummary {
   brand: string | null
   model: string | null
   price_kobo: number
-  payout_kobo: number
+  /** Only for the technician. */
+  payout_kobo: number | null
   service_mode: ServiceMode
   other_party: string
   created_at: string

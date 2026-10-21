@@ -72,7 +72,7 @@ export default function ReviewTechnician() {
         <Row label="Account" value={d.private.account_number ?? '-'} />
         <Row label="Account name" value={d.private.account_name ?? '-'} />
       </Card>
-      <Heading>Prices</Heading>
+      <Heading>Repair fees (labour)</Heading>
       <Card>
         {d.services.length ? d.services.map((s) => (
           <Row key={`${s.device_type}:${s.category}`} label={`${deviceLabel(s.device_type)}: ${repairLabel(s.device_type, s.category)}${s.is_active ? '' : ' (off)'}`} value={formatNaira(s.price_kobo)} />

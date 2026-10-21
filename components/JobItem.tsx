@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import React from 'react'
 import { Text, View } from 'react-native'
-import { deviceLabel, repairLabel } from '@/constants/catalog'
+import { deviceName, repairLabel } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import { needsMe, STATUS_LABEL, tone } from '@/lib/jobFlow'
 import type { Job, JobSummary, Role } from '@/lib/types'
@@ -15,7 +15,7 @@ export function JobItem({ job, role, amount = 'price', subtitle }: {
   subtitle?: string
 }) {
   const who = 'other_party' in job ? job.other_party : null
-  const device = [job.brand, job.model].filter(Boolean).join(' ') || deviceLabel(job.device_type)
+  const device = deviceName(job.brand, job.model, job.device_type)
   const urgent = needsMe(role, job.status)
   return (
     <Card
@@ -30,7 +30,7 @@ export function JobItem({ job, role, amount = 'price', subtitle }: {
           <Text style={font.small} numberOfLines={1}>{repairLabel(job.device_type, job.category)}</Text>
           <Text style={[font.small, { marginTop: 2 }]} numberOfLines={1}>{subtitle ?? [who, job.code].filter(Boolean).join(' · ')}</Text>
         </View>
-        <Text style={font.bodyStrong}>{formatNaira(amount === 'payout' ? job.payout_kobo : job.price_kobo)}</Text>
+        <Text style={font.bodyStrong}>{formatNaira(amount === 'payout' ? (job.payout_kobo ?? 0) : job.price_kobo)}</Text>
       </View>
       <View style={{ marginTop: spacing.sm }}>
         <Pill text={urgent && role !== 'admin' ? `Your turn · ${STATUS_LABEL[job.status]}` : STATUS_LABEL[job.status]} tone={tone(role, job.status)} />

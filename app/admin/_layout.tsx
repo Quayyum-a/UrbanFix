@@ -8,6 +8,7 @@ export default function AdminLayout() {
   return (
     <TabsLayout tabs={[
       { name: 'index', title: 'To do', icon: 'checkbox-outline' },
+      { name: 'prices', title: 'Prices', icon: 'pricetags-outline' },
       { name: 'account', title: 'Account', icon: 'person-outline' },
     ]} />
   )

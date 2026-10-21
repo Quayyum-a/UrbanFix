@@ -17,6 +17,7 @@ export default function AdminHome() {
   const [payments, setPayments] = useState<Job[] | null>(null)
   const [issues, setIssues] = useState<Job[] | null>(null)
   const [payouts, setPayouts] = useState<Job[] | null>(null)
+  const [partPayouts, setPartPayouts] = useState<Job[] | null>(null)
   const [techs, setTechs] = useState<PendingTech[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -25,13 +26,14 @@ export default function AdminHome() {
   const load = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true)
     try {
-      const [p, i, o, t] = await Promise.all([
+      const [p, i, o, parts, t] = await Promise.all([
         api.adminJobs(['payment_submitted']),
         api.adminJobs(['disputed']),
-        api.adminJobs(['completed'], { payoutDue: true }),
+        api.adminJobs(null, 'repair_fee'),
+        api.adminJobs(null, 'part'),
         api.adminPendingTechnicians(),
       ])
-      setPayments(p); setIssues(i); setPayouts(o); setTechs(t); setError(null)
+      setPayments(p); setIssues(i); setPayouts(o); setPartPayouts(parts); setTechs(t); setError(null)
     } catch (e) {
       setError(api.friendlyError(e))
     } finally {
@@ -75,7 +77,7 @@ export default function AdminHome() {
         { value: 'payments', label: `Payments${count(payments)}` },
         { value: 'technicians', label: `Technicians${count(techs)}` },
         { value: 'issues', label: `Issues${count(issues)}` },
-        { value: 'payouts', label: `Payouts${count(payouts)}` },
+        { value: 'payouts', label: `Payouts${payouts && partPayouts ? ` (${payouts.length + partPayouts.length})` : ''}` },
       ]} />
       <ErrorText error={error} />
       {loading ? <Loading /> : null}
@@ -101,8 +103,15 @@ export default function AdminHome() {
 
       {!loading && tab === 'payouts' ? (
         <>
-          {payouts!.length ? payouts!.map((j) => <JobItem key={j.id} job={j} role="admin" amount="payout" subtitle={`${j.code} · pay technician`} />)
-            : <Empty icon="wallet-outline" title="No payouts due" />}
+          {partPayouts!.length ? <Small style={{ marginBottom: spacing.sm }}>Part money (send after payment so they can buy the part)</Small> : null}
+          {partPayouts!.map((j) => (
+            <JobItem key={`p-${j.id}`} job={{ ...j, payout_kobo: j.part_kobo }} role="admin" amount="payout" subtitle={`${j.code} · part money`} />
+          ))}
+          {payouts!.length ? <Small style={{ marginBottom: spacing.sm }}>Repair fees (customer confirmed)</Small> : null}
+          {payouts!.map((j) => (
+            <JobItem key={`f-${j.id}`} job={{ ...j, payout_kobo: j.labour_kobo ?? 0 }} role="admin" amount="payout" subtitle={`${j.code} · repair fee`} />
+          ))}
+          {!payouts!.length && !partPayouts!.length ? <Empty icon="wallet-outline" title="No payouts due" /> : null}
           <Button title="Release overdue confirmations" kind="secondary" loading={busy === 'auto'} onPress={runAutoRelease} />
           <Small>Releases repairs the customer hasn't confirmed or disputed within 72 hours of being marked ready.</Small>
         </>

@@ -54,13 +54,30 @@ describe('rpc calls', () => {
 
   test('createJob never sends a price, and drops the address for drop-off', async () => {
     rpc.mockResolvedValue({ data: { id: 'j1' }, error: null })
-    await api.createJob({ technicianId: 't1', deviceType: 'smartphone', category: 'screen_replacement', mode: 'drop_off', address: '12 Allen Avenue', brand: '', model: '  ' })
+    await api.createJob({ technicianId: 't1', deviceType: 'smartphone', brand: 'iphone', modelId: 7, modelText: 'ignored',
+      category: 'screen_replacement', grade: 'premium', mode: 'drop_off', address: '12 Allen Avenue', issueNote: '  ' })
     const [, args] = rpc.mock.calls[0]!
     expect(args).toEqual({
-      p_technician_id: 't1', p_device_type: 'smartphone', p_category: 'screen_replacement',
-      p_brand: null, p_model: null, p_issue_note: null, p_service_mode: 'drop_off', p_address: null,
+      p_technician_id: 't1', p_device_type: 'smartphone', p_brand: 'iphone', p_model_id: 7, p_model_text: null,
+      p_category: 'screen_replacement', p_grade: 'premium', p_issue_note: null, p_service_mode: 'drop_off', p_address: null,
     })
     expect(JSON.stringify(args)).not.toMatch(/price|kobo/)
+  })
+
+  test('unlisted model sends the typed name', async () => {
+    rpc.mockResolvedValue({ data: { id: 'j1' }, error: null })
+    await api.createJob({ technicianId: 't1', deviceType: 'smartphone', brand: 'other_android', modelId: null, modelText: ' Oppo  A78 ',
+      category: 'screen_replacement', grade: 'standard', mode: 'visit', address: '12 Allen Avenue, Ikeja' })
+    expect(rpc.mock.calls[0]![1]).toMatchObject({ p_model_id: null, p_model_text: 'Oppo A78', p_address: '12 Allen Avenue, Ikeja' })
+  })
+
+  test('recordIntake sends the technician\'s confirmation fields', async () => {
+    rpc.mockResolvedValue({ data: { id: 'j1' }, error: null })
+    await api.recordIntake('j1', { identifier: '490154203237518', notes: '', photos: ['j1/a.jpg'], modelId: 3, category: 'water_damage', grade: null, partKobo: 0 })
+    expect(rpc).toHaveBeenCalledWith('record_intake', {
+      p_job_id: 'j1', p_identifier: '490154203237518', p_notes: null, p_photos: ['j1/a.jpg'], p_model_id: 3, p_model_text: null,
+      p_category: 'water_damage', p_grade: null, p_part_kobo: 0,
+    })
   })
 
   test('errors from the server are thrown for the screen to show', async () => {
