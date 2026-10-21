@@ -52,6 +52,8 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
   const profile = useSession((s) => s.profile)
   const progress = setupProgress(data)
   const editable = ['draft', 'pending', 'rejected'].includes(data.tech.status)
+  // Approved technicians (e.g. added directly by UrbanFix) can add bank details once.
+  const bankEditable = editable || (data.tech.status === 'approved' && !data.priv?.account_number)
   const [open, setOpen] = useState<number>(() => firstOpenSection(data))
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -147,12 +149,12 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
       </Section>
 
       <Section n={3} title="Where we pay you" done={progress.bank} open={open === 3} onOpen={() => setOpen(3)}>
-        {!editable ? <Banner tone="neutral" text="Bank details are locked after approval for your safety. Contact UrbanFix support to change them." /> : null}
+        {!bankEditable ? <Banner tone="neutral" text="Bank details are locked after approval for your safety. Contact UrbanFix support to change them." /> : null}
         <Chips label="Bank" options={BANKS.map((b) => ({ value: b, label: b }))} value={bank} onChange={setBank} />
         <Field label="Account number" keyboardType="number-pad" maxLength={10} value={acct} onChangeText={(t) => setAcct(t.replace(/[^0-9]/g, ''))}
-          error={acct.length === 10 ? accountNumberProblem(acct) : null} editable={editable} testID="acct" />
-        <Field label="Account name" value={acctName} onChangeText={setAcctName} maxLength={80} editable={editable} />
-        {editable ? <Button title="Save bank details" disabled={!!bankErr} loading={busy === 'bank'} testID="save-bank"
+          error={acct.length === 10 ? accountNumberProblem(acct) : null} editable={bankEditable} testID="acct" />
+        <Field label="Account name" value={acctName} onChangeText={setAcctName} maxLength={80} editable={bankEditable} />
+        {bankEditable ? <Button title="Save bank details" disabled={!!bankErr} loading={busy === 'bank'} testID="save-bank"
           onPress={() => void save('bank', () => api.savePayoutDetails(bank!, acct, acctName), 4)} /> : null}
       </Section>
 

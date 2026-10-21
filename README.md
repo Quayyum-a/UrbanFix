@@ -16,6 +16,8 @@ In Supabase, open **SQL Editor → New query**, paste all of [`database/urbanfix
 
 > This deletes everything in the `public` schema and rebuilds it. Only run it on a project whose data you don't need.
 
+Then run each file in [`database/migrations`](database/migrations) in order (they're safe to run again).
+
 ### 2. Sign-in setting
 
 **Authentication → Sign In / Providers → Email**: keep Email enabled and turn **Confirm email** off.
@@ -68,6 +70,22 @@ Phone numbers aren't verified by SMS, so you can use any valid-looking Nigerian 
 7. **Technician**: record the IMEI (dial `*#06#` on a real phone, or use the test IMEI `490154203237518`) and a photo → Start repair → describe the fix + photo → Mark as ready.
 8. **Customer**: "Yes, it works. Release payment" → rate.
 9. **Admin**: Payouts → open → enter the transfer reference → Mark payout sent.
+
+## Add technicians you already trust
+
+Skip the in-app approval for people you've vetted yourself (needs migration `002`). In the SQL editor:
+
+```sql
+SELECT public.admin_add_trusted_technician(
+  '08012345678', 'Tobi Adeyemi', 'Tobi Phone Clinic',
+  '7 Otigba Street, Computer Village, Ikeja', 'Ikeja',
+  '[["smartphone","screen_replacement",35000], ["smartphone","diagnosis",3000]]'
+);
+```
+
+Prices are in naira. Repair names are in `public.repair_options`. The result includes a **PIN**: send it to the technician privately; they sign in with their phone number and that PIN. They're online and bookable immediately, and can change prices in the app (Account → Shop, prices, bank and ID) and add their bank account once. Running it again for the same number updates their details and prices but keeps their PIN.
+
+Don't commit technicians' real phone numbers to this repo; it's public.
 
 ## Forgot PIN
 

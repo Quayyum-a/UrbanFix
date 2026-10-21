@@ -51,6 +51,14 @@ export default function TechnicianJobs() {
       {tech.status === 'pending' ? <Banner tone="neutral" icon="time-outline" text="UrbanFix is reviewing your profile. You'll be able to go online once approved." /> : null}
       {tech.status === 'suspended' ? <Banner tone="bad" text={`Your account is suspended: ${tech.status_reason ?? ''}. Contact UrbanFix support.`} /> : null}
 
+      {tech.status === 'approved' && !data.priv?.account_number ? (
+        <Card style={{ borderColor: colors.accent, borderWidth: 1.5 }}>
+          <Text style={font.bodyStrong}>Add your bank account</Text>
+          <Small style={{ marginBottom: spacing.md }}>So UrbanFix can pay you when a customer confirms a repair.</Small>
+          <Button title="Add bank details" kind="accent" onPress={() => router.push('/technician-setup')} testID="add-bank" />
+        </Card>
+      ) : null}
+
       {tech.status === 'approved' ? (
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

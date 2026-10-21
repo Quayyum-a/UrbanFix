@@ -139,6 +139,28 @@ describe('technician screens', () => {
     expect(await screen.findByText('Finish your profile to get jobs')).toBeTruthy()
     expect(screen.getByText('3 of 4 steps done')).toBeTruthy()
   })
+  test('approved without bank details is asked to add them', async () => {
+    const d = techData('approved')
+    m.getMyTechnician.mockResolvedValue({ ...d, priv: { ...d.priv, bank_name: null, account_number: null, account_name: null } })
+    render(React.createElement(load('technician/index')))
+    expect(await screen.findByTestId('add-bank')).toBeTruthy()
+  })
+  test('approved with bank details: no prompt', async () => {
+    render(React.createElement(load('technician/index')))
+    await screen.findByText("You're online")
+    expect(screen.queryByTestId('add-bank')).toBeNull()
+  })
+  test('setup lets an approved technician add bank details once, then locks them', async () => {
+    const d = techData('approved')
+    m.getMyTechnician.mockResolvedValue({ ...d, priv: { ...d.priv, bank_name: null, account_number: null, account_name: null } })
+    const { unmount } = render(React.createElement(load('technician-setup')))
+    expect(await screen.findByTestId('save-bank')).toBeTruthy()
+    unmount()
+    m.getMyTechnician.mockResolvedValue(d)
+    render(React.createElement(load('technician-setup')))
+    await screen.findByText('Get approved')
+    expect(screen.queryByTestId('save-bank')).toBeNull()
+  })
   test('setup', async () => {
     m.getMyTechnician.mockResolvedValue(techData('draft'))
     render(React.createElement(load('technician-setup')))
