@@ -82,7 +82,7 @@ describe('signed-in users cannot write tables directly', () => {
 
 describe('row level security: people only see their own things', () => {
   test('a stranger cannot see another customer\'s job, events, messages or profile', async () => {
-    expect(await db.as(stranger).sql('SELECT * FROM public.jobs')).toHaveLength(0)
+    await expectFail(db.as(stranger).sql('SELECT * FROM public.jobs'), DENIED)
     expect(await db.as(stranger).sql('SELECT * FROM public.job_events')).toHaveLength(0)
     expect(await db.as(stranger).sql('SELECT * FROM public.messages')).toHaveLength(0)
     const profiles = await db.as(stranger).sql('SELECT id FROM public.profiles')
@@ -92,7 +92,7 @@ describe('row level security: people only see their own things', () => {
   })
 
   test('another technician cannot see the job', async () => {
-    expect(await db.as(otherTech).sql('SELECT * FROM public.jobs WHERE id = $1', [jobId])).toHaveLength(0)
+    await expectFail(db.as(otherTech).sql('SELECT * FROM public.jobs WHERE id = $1', [jobId]), DENIED)
     await expectFail(db.as(otherTech).rpc('get_job', [jobId]), 'Repair not found')
     await expectFail(db.as(otherTech).rpc('accept_job', [jobId]), 'Repair not found')
   })
@@ -113,7 +113,7 @@ describe('row level security: people only see their own things', () => {
   })
 
   test('admin sees everything', async () => {
-    expect((await db.as(admin).sql('SELECT * FROM public.jobs')).length).toBeGreaterThan(0)
+    expect((await db.as(admin).rpc('admin_list_jobs', [null, null])).length).toBeGreaterThan(0)
     expect((await db.as(admin).sql('SELECT * FROM public.technician_private')).length).toBeGreaterThan(1)
   })
 
@@ -121,8 +121,8 @@ describe('row level security: people only see their own things', () => {
     // The customer's job is paid, so the technician can upload intake evidence.
     await db.as(tech).upload('job-photos', `${jobId}/sec-1.jpg`)
     const visible = (u: User) => db.as(u).sql("SELECT name FROM storage.objects WHERE bucket_id = 'job-photos'")
-    expect(await visible(customer)).toHaveLength(1)
-    expect(await visible(admin)).toHaveLength(1)
+    expect(await visible(customer)).toHaveLength(2) // intake photo + this one
+    expect(await visible(admin)).toHaveLength(2)
     expect(await visible(stranger)).toHaveLength(0)
     expect(await visible(otherTech)).toHaveLength(0)
   })
@@ -135,7 +135,7 @@ describe('row level security: people only see their own things', () => {
       expect(del).toHaveLength(0)
     }
     const { rows } = await db.root.query("SELECT count(*)::int AS n FROM storage.objects WHERE bucket_id = 'job-photos'")
-    expect(rows[0].n).toBe(1)
+    expect(rows[0].n).toBe(2)
   })
 
   test('ID documents are private to the technician and admin', async () => {
@@ -152,7 +152,7 @@ describe('injection and hostile input is stored as plain text', () => {
     await db.as(customer).rpc('send_message', [jobId, evil])
     const rows = await db.as(customer).sql('SELECT body FROM public.messages WHERE job_id = $1 ORDER BY id', [jobId])
     expect(rows[rows.length - 1].body).toBe(evil)
-    expect(await db.as(admin).sql('SELECT 1 FROM public.jobs LIMIT 1')).toHaveLength(1)
+    expect((await db.root.query('SELECT 1 FROM public.jobs LIMIT 1')).rows).toHaveLength(1)
   })
 
   test('malformed ids are rejected cleanly', async () => {
@@ -160,3 +160,34 @@ describe('injection and hostile input is stored as plain text', () => {
     await expectFail(db.as(customer).rpc('get_job', ['00000000-0000-0000-0000-000000000000']), 'Repair not found')
   })
 })
+
+describe('prices and the fee split', () => {
+  test('customers can\'t see how the service charge is split, by any route', async () => {
+    await expectFail(db.as(customer).sql('SELECT labour_kobo, commission_kobo FROM public.jobs'), DENIED)
+    const [mine] = await db.as(customer).rpc('my_jobs')
+    expect(mine.payout_kobo).toBeNull()
+    const [techs] = await db.as(tech).rpc('my_jobs')
+    expect(techs.payout_kobo).toBeGreaterThan(0)
+  })
+
+  test('everyone signed in can read the price list; only admins see Jiji observations', async () => {
+    expect((await db.as(customer).sql('SELECT * FROM public.part_prices')).length).toBeGreaterThan(0)
+    expect(await db.as(customer).sql('SELECT * FROM public.price_observations')).toHaveLength(0)
+    expect(await db.as(tech).sql('SELECT * FROM public.price_observations')).toHaveLength(0)
+    expect((await db.as(admin).sql('SELECT * FROM public.price_observations')).length).toBeGreaterThan(0)
+    await expectFail(db.as(null).sql('SELECT * FROM public.part_prices'), DENIED)
+  })
+
+  test('only admins change prices, add models or list all jobs', async () => {
+    const { rows: [m] } = await db.root.query("SELECT id FROM public.device_models WHERE name = 'iPhone X'")
+    for (const u of [customer, tech]) {
+      await expectFail(db.as(u).rpc('admin_set_part_price', [m.id, 'screen_replacement', 'standard', 100_000, null]), 'Only an UrbanFix admin')
+      await expectFail(db.as(u).rpc('admin_add_model', ['smartphone', 'iphone', 'iPhone 99', null]), 'Only an UrbanFix admin')
+      await expectFail(db.as(u).rpc('admin_list_jobs', [null, null]), 'Only an UrbanFix admin')
+      await expectFail(db.as(u).rpc('admin_price_board', ['smartphone', 'iphone']), 'Only an UrbanFix admin')
+      await expectFail(db.as(u).sql('UPDATE public.part_prices SET price_kobo = 100'), DENIED)
+      await expectFail(db.as(u).sql("INSERT INTO public.device_models (device_type, brand, name) VALUES ('smartphone','iphone','Fake')"), DENIED)
+    }
+  })
+})
+

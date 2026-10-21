@@ -4,9 +4,9 @@
 -- request JWT claims, and storage.objects with RLS (the Storage API inserts
 -- rows as the signed-in user, so the same policies apply).
 
-CREATE ROLE anon NOLOGIN NOINHERIT;
-CREATE ROLE authenticated NOLOGIN NOINHERIT;
-CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS;
+DO $$ BEGIN CREATE ROLE anon NOLOGIN NOINHERIT; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE ROLE authenticated NOLOGIN NOINHERIT; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE ROLE service_role NOLOGIN NOINHERIT BYPASSRLS; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE SCHEMA auth;
 -- Columns match Supabase Auth's auth.users / auth.identities (the ones we write).

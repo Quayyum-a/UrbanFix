@@ -26,12 +26,11 @@ const ok = (r: PromiseSettledResult<unknown>[]) => r.filter((x) => x.status === 
 
 test('admin double-tapping "confirm payment" confirms once', async () => {
   const c = await db.customer()
-  const j = await db.book(c, tech)
-  await db.as(tech).rpc('accept_job', [j.id])
+  const j = await db.quotedJob(c, tech)
   await db.as(c).rpc('submit_payment', [j.id, 'Ada transfer'])
   const results = await race((conn) => db.as(admin, conn).rpc('admin_confirm_payment', [j.id]))
   expect(ok(results)).toBe(1)
-  const { rows } = await db.root.query("SELECT count(*)::int AS n FROM public.job_events WHERE job_id = $1 AND to_status = 'paid'", [j.id])
+  const { rows } = await db.root.query("SELECT count(*)::int AS n FROM public.job_events WHERE job_id = $1 AND to_status = 'in_repair'", [j.id])
   expect(rows[0].n).toBe(1)
 })
 
@@ -61,17 +60,18 @@ test('payout marked paid only once under concurrent taps', async () => {
 
 test('a bot firing 6 bookings at once still hits the 3-open-requests limit', async () => {
   const c = await db.customer()
-  const combos = [['smartphone', 'screen_replacement'], ['smartphone', 'battery_replacement'], ['laptop', 'screen_replacement'],
-    ['tablet', 'screen_replacement'], ['laptop', 'battery_replacement'], ['tablet', 'battery_replacement']]
+  const combos = [['smartphone', 'screen_replacement', 'iphone', 'iPhone X'], ['smartphone', 'battery_replacement', 'iphone', 'iPhone X'],
+    ['laptop', 'screen_replacement', 'hp', 'HP x360'], ['tablet', 'screen_replacement', 'ipad', 'iPad 10'],
+    ['laptop', 'battery_replacement', 'dell', 'Dell 3520'], ['tablet', 'battery_replacement', 'samsung', 'Tab A8']]
   const results = await race((conn, i) => db.as(c, conn).rpc('create_job', [
-    tech.id, combos[i]![0], combos[i]![1], null, null, null, 'drop_off', null]))
+    tech.id, combos[i]![0], combos[i]![2], null, combos[i]![3], combos[i]![1], 'standard', null, 'drop_off', null]))
   expect(ok(results)).toBe(3)
 })
 
 test('a bot firing the same booking 6 times creates it once', async () => {
   const c = await db.customer()
   const results = await race((conn) => db.as(c, conn).rpc('create_job', [
-    tech.id, 'smartphone', 'screen_replacement', null, null, null, 'drop_off', null]))
+    tech.id, 'smartphone', 'iphone', null, 'iPhone X', 'screen_replacement', 'standard', null, 'drop_off', null]))
   expect(ok(results)).toBe(1)
 })
 
@@ -80,5 +80,18 @@ test('double review submission stores one review', async () => {
   const j = await db.readyJob(c, tech, admin)
   await db.as(c).rpc('confirm_completion', [j.id])
   const results = await race((conn) => db.as(c, conn).rpc('submit_review', [j.id, 5, null]))
+  expect(ok(results)).toBe(1)
+})
+
+test('part money marked sent only once under concurrent taps', async () => {
+  const j = await db.paidJob(await db.customer(), tech, admin)
+  const results = await race((conn, i) => db.as(admin, conn).rpc('admin_mark_part_payout_paid', [j.id, `PART-${i}000`]))
+  expect(ok(results)).toBe(1)
+})
+
+test('warranty claim and review fired together both behave', async () => {
+  const c = await db.customer()
+  const j = await db.completedJob(c, tech, admin)
+  const results = await race((conn) => db.as(c, conn).rpc('claim_warranty', [j.id, 'Screen died after two days']))
   expect(ok(results)).toBe(1)
 })

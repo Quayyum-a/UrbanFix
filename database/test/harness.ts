@@ -78,7 +78,8 @@ export class Db {
     services?: [string, string, number][]
     admin?: User
   } = {}): Promise<User> {
-    const { approve = true, services = [['smartphone', 'screen_replacement', 2_500_000]] } = opts
+    // Service prices are the technician's repair fee (labour only), in kobo.
+    const { approve = true, services = [['smartphone', 'screen_replacement', 500_000]] } = opts
     const u = await this.authUser()
     const t = this.as(u)
     await t.rpc('complete_signup', ['technician', 'Emeka Okafor', 'Ikeja', null])
@@ -96,36 +97,68 @@ export class Db {
     return u
   }
 
+  async modelId(name: string, device = 'smartphone', brand = 'iphone'): Promise<number> {
+    const { rows } = await this.root.query(
+      'SELECT id FROM public.device_models WHERE device_type = $1 AND brand = $2 AND name = $3', [device, brand, name])
+    if (!rows[0]) throw new Error(`No model ${name}`)
+    return Number(rows[0].id)
+  }
+
+  /** Default booking: iPhone X screen, Premium (GX ₦37,000 in the seeded price list). */
   async book(customer: User, tech: User, over: Partial<{
-    device: string; category: string; mode: string; address: string | null
+    device: string; brand: string; model: string | null; modelText: string | null
+    category: string; grade: string | null; mode: string; address: string | null
   }> = {}) {
+    const device = over.device ?? 'smartphone'
+    const brand = over.brand ?? 'iphone'
+    const model = over.model === undefined ? 'iPhone X' : over.model
+    const modelId = model ? await this.modelId(model, device, brand) : null
     return this.as(customer).one('create_job', [
-      tech.id, over.device ?? 'smartphone', over.category ?? 'screen_replacement',
-      'Samsung', 'Galaxy A54', 'Screen cracked after a fall',
+      tech.id, device, brand, modelId, over.modelText ?? null,
+      over.category ?? 'screen_replacement', over.grade === undefined ? 'premium' : over.grade,
+      'Screen cracked after a fall',
       over.mode ?? 'visit', over.address === undefined ? '12 Allen Avenue, Ikeja, Lagos' : over.address,
     ])
   }
 
-  /** Book → accept → customer says paid → admin confirms. Returns the job. */
-  async paidJob(customer: User, tech: User, admin: User) {
-    const job = await this.book(customer, tech)
+  /** Technician records the device and confirms the price. */
+  async quote(tech: User, jobId: string, opts: { partKobo?: number | null; grade?: string | null; category?: string | null; model?: string | null } = {}) {
+    const photo = `${jobId}/intake-1.jpg`
+    const { rows } = await this.root.query("SELECT 1 FROM storage.objects WHERE bucket_id = 'job-photos' AND name = $1", [photo])
+    if (!rows.length) await this.as(tech).upload('job-photos', photo)
+    const modelId = opts.model ? await this.modelId(opts.model) : null
+    return this.as(tech).one('record_intake', [jobId, VALID_IMEI, 'Screen shattered, frame bent', [photo],
+      modelId, null, opts.category ?? null, opts.grade ?? null, opts.partKobo ?? null])
+  }
+
+  /** Book → accept → technician checks device and confirms price. */
+  async quotedJob(customer: User, tech: User, over: Parameters<Db['book']>[2] = {}) {
+    const job = await this.book(customer, tech, over)
     await this.as(tech).rpc('accept_job', [job.id])
+    return this.quote(tech, job.id)
+  }
+
+  /** …→ customer pays → admin confirms. Returns the job, now in repair. */
+  async paidJob(customer: User, tech: User, admin: User, over: Parameters<Db['book']>[2] = {}) {
+    const job = await this.quotedJob(customer, tech, over)
     await this.as(customer).rpc('submit_payment', [job.id, 'Ada Obi GTB transfer'])
     return this.as(admin).one('admin_confirm_payment', [job.id])
   }
 
-  async inRepairJob(customer: User, tech: User, admin: User) {
-    const job = await this.paidJob(customer, tech, admin)
-    const photo = `${job.id}/intake-1.jpg`
-    await this.as(tech).upload('job-photos', photo)
-    return this.as(tech).one('record_intake', [job.id, VALID_IMEI, 'Screen shattered, frame bent', [photo]])
+  inRepairJob(customer: User, tech: User, admin: User, over: Parameters<Db['book']>[2] = {}) {
+    return this.paidJob(customer, tech, admin, over)
   }
 
-  async readyJob(customer: User, tech: User, admin: User) {
-    const job = await this.inRepairJob(customer, tech, admin)
+  async readyJob(customer: User, tech: User, admin: User, over: Parameters<Db['book']>[2] = {}) {
+    const job = await this.paidJob(customer, tech, admin, over)
     const photo = `${job.id}/done-1.jpg`
     await this.as(tech).upload('job-photos', photo)
-    return this.as(tech).one('mark_ready', [job.id, 'Replaced screen and tested touch', 'Screen (OEM)', [photo]])
+    return this.as(tech).one('mark_ready', [job.id, 'Replaced screen and tested touch', 'Screen (GX OLED)', [photo]])
+  }
+
+  async completedJob(customer: User, tech: User, admin: User, over: Parameters<Db['book']>[2] = {}) {
+    const job = await this.readyJob(customer, tech, admin, over)
+    return this.as(customer).one('confirm_completion', [job.id])
   }
 
   async job(id: string) {
