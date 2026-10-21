@@ -20,6 +20,28 @@ export default function Gate() {
     )
   }
 
+  if (status === 'app_outdated' || status === 'db_outdated') {
+    return (
+      <Screen>
+        <Title sub="Prices and bookings are paused so nobody sees a wrong amount.">Update needed</Title>
+        {status === 'app_outdated' ? (
+          <>
+            <P>This copy of UrbanFix is older than the database.</P>
+            <P strong style={{ marginVertical: 12 }}>git pull{'\n'}npm install{'\n'}npx expo start -c</P>
+            <P muted>Then reopen the app in Expo Go.</P>
+          </>
+        ) : (
+          <>
+            <P>The database is missing an update this app needs.</P>
+            <P muted style={{ marginTop: 12 }}>In Supabase → SQL Editor, run each file in database/migrations that you haven't run yet, in order (they're safe to run again). Then reopen the app.</P>
+          </>
+        )}
+        <Button title="Check again" onPress={() => void refresh()} />
+        <Button title="Sign out" kind="ghost" onPress={() => void signOut()} />
+      </Screen>
+    )
+  }
+
   if (status === 'error') {
     return (
       <Screen scroll={false}>

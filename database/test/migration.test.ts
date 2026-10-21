@@ -10,7 +10,7 @@ afterAll(async () => { await db.close() })
 
 const file = (n: string) => fs.readFileSync(path.join(__dirname, '..', 'migrations', n), 'utf8')
 
-test('running 002 and 003 again changes nothing you set', async () => {
+test('running every migration again changes nothing you set', async () => {
   const admin = await db.admin()
   const tech = await db.technician({ admin })
   await db.as(tech).rpc('save_service', ['smartphone', 'screen_replacement', 1_200_000, true])
@@ -18,8 +18,9 @@ test('running 002 and 003 again changes nothing you set', async () => {
   await db.as(admin).rpc('admin_set_part_price', [x, 'screen_replacement', 'standard', 1_600_000, 'Incell'])
   const before = await db.root.query('SELECT count(*)::int AS n FROM public.device_models')
 
-  await db.root.query(file('002_trusted_technicians.sql'))
-  await db.root.query(file('003_model_pricing.sql'))
+  for (const f of fs.readdirSync(path.join(__dirname, '..', 'migrations')).filter((n) => n.endsWith('.sql')).sort()) {
+    await db.root.query(file(f))
+  }
 
   const fee = await db.root.query('SELECT price_kobo FROM public.services WHERE technician_id = $1 AND category = $2', [tech.id, 'screen_replacement'])
   expect(fee.rows[0].price_kobo).toBe(1_200_000)
@@ -88,4 +89,18 @@ test('on a live database with only 002 applied, 003 converts old full prices and
   } finally {
     await live.close()
   }
+})
+
+test('this app build matches the database version (no "update needed" screen, no wrong prices)', async () => {
+  const { versionProblem } = jest.requireActual('../../lib/appVersion')
+  const { rows: [cfg] } = await db.root.query('SELECT pricing_version, min_app_build FROM public.settings WHERE id = 1')
+  expect(versionProblem(cfg)).toBeNull()
+})
+
+test('a database without migration 003/004 is detected as outdated', async () => {
+  const { versionProblem } = jest.requireActual('../../lib/appVersion')
+  expect(versionProblem({ pricing_version: 1 })).toBe('db_outdated')
+  expect(versionProblem({ pricing_version: 3 })).toBe('db_outdated')
+  expect(versionProblem(null)).toBe('db_outdated')
+  expect(versionProblem({ pricing_version: 3, min_app_build: 99 })).toBe('app_outdated')
 })

@@ -98,7 +98,11 @@ describe('money', () => {
     expect(formatNaira(2_500_000)).toBe('₦25,000')
     expect(formatNaira(0)).toBe('₦0')
     expect(formatNaira('150000000')).toBe('₦1,500,000')
-    expect(formatNaira(null)).toBe('₦0')
+    expect(formatNaira(null)).toBe('—')
+    expect(formatNaira(undefined)).toBe('—')
+    expect(formatNaira('abc')).toBe('—')
+    expect(formatNaira(NaN)).toBe('—')
+    expect(formatNaira(-250_000)).toBe('-₦2,500')
   })
 })
 
