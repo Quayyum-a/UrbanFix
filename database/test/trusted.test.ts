@@ -38,20 +38,21 @@ test('creates a sign-in account, approved and online, visible to customers with 
   expect(ident).toEqual([{ provider: 'email', email: '2348149736017@phone.urbanfix.app' }])
 
   const customer = await db.customer()
-  const found = await db.as(customer).rpc('find_technicians', ['smartphone', 'screen_replacement'])
-  expect(found.map((f) => [f.full_name, f.shop_address, f.price_kobo])).toEqual([['Oluwatobi', ADDRESS, 3_500_000]])
+  const found = await db.as(customer).rpc('find_technicians', ['smartphone', 'screen_replacement', null, 'standard'])
+  // Their price is now the repair fee (₦35,000 here); parts are added from the price list.
+  expect(found.map((f) => [f.full_name, f.shop_address, f.service_charge_kobo])).toEqual([['Oluwatobi', ADDRESS, 3_500_000 + 150_000]])
 
   // And can be booked straight away.
   const tech = await userFor('+2348149736017')
   const job = await db.book(customer, tech)
-  expect(job).toMatchObject({ status: 'requested', price_kobo: 3_500_000, payout_kobo: 3_150_000 })
+  expect(job).toMatchObject({ status: 'requested', part_kobo: 3_700_000, labour_kobo: 3_500_000, commission_kobo: 350_000 })
 })
 
 test('three technicians can share one address; each is unique by phone number', async () => {
   await add('+2349064450715', 'Odion')
   await add('+2349114262315', 'Yunus')
   const c = await db.customer()
-  const names = (await db.as(c).rpc('find_technicians', ['laptop', 'diagnosis'])).map((r) => r.full_name).sort()
+  const names = (await db.as(c).rpc('find_technicians', ['laptop', 'diagnosis', null, null])).map((r) => r.full_name).sort()
   expect(names).toEqual(['Odion', 'Oluwatobi', 'Yunus'])
 })
 

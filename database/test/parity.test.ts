@@ -3,6 +3,7 @@
 // "ok" by the app and then rejected by the server (or vice versa).
 import * as fc from 'fast-check'
 import { REPAIRS } from '../../constants/catalog'
+import { platformFee } from '../../lib/fees'
 import { deviceIdProblem, luhnOk, nameProblem, normalizePhone, phoneToEmail } from '../../lib/validation'
 import { Db } from './harness'
 
@@ -58,8 +59,15 @@ test('IMEI/serial rules match the database', async () => {
 })
 
 test('the repair catalog in the app is exactly what the database accepts', async () => {
-  const { rows } = await db.root.query('SELECT device_type, category, label FROM public.repair_options ORDER BY device_type, sort_order')
-  const fromDb = rows.map((r) => `${r.device_type}:${r.category}:${r.label}`).sort()
-  const fromApp = Object.entries(REPAIRS).flatMap(([d, list]) => list.map((r) => `${d}:${r.category}:${r.label}`)).sort()
+  const { rows } = await db.root.query('SELECT device_type, category, label, part_mode FROM public.repair_options ORDER BY device_type, sort_order')
+  const fromDb = rows.map((r) => `${r.device_type}:${r.category}:${r.label}:${r.part_mode}`).sort()
+  const fromApp = Object.entries(REPAIRS).flatMap(([d, list]) => list.map((r) => `${d}:${r.category}:${r.label}:${r.partMode}`)).sort()
   expect(fromApp).toEqual(fromDb)
+})
+
+test('the app\'s fee preview matches the database fee for any part price', async () => {
+  await fc.assert(fc.asyncProperty(fc.integer({ min: 0, max: 500_000_000 }), fc.boolean(), async (part, repeat) => {
+    const { rows } = await db.root.query('SELECT public._platform_fee($1, $2) AS f', [part, repeat])
+    expect(platformFee(part, repeat)).toBe(rows[0].f)
+  }), { numRuns: 500 })
 })

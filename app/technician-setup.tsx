@@ -115,8 +115,8 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
           onPress={() => void save('shop', () => api.saveShop(shopName, shopAddress, area!, bio), 2)} />
       </Section>
 
-      <Section n={2} title="Repairs you do and your prices" done={progress.services} open={open === 2} onOpen={() => setOpen(2)}>
-        <Small style={{ marginBottom: spacing.md }}>Set the full price the customer pays (parts and labour). UrbanFix's fee is 10% (5% for repeat customers), taken from this.</Small>
+      <Section n={2} title="Repairs you do and your repair fee" done={progress.services} open={open === 2} onOpen={() => setOpen(2)}>
+        <Small style={{ marginBottom: spacing.md }}>Set your fee for the work only. Parts are priced separately: from the UrbanFix price list, or by you after checking the device when a part isn't listed. Customers see the part and one service charge (your fee plus a small UrbanFix fee).</Small>
         <Chips options={DEVICES.map((d) => ({ value: d.type, label: d.label }))} value={device} onChange={setDevice} />
         {REPAIRS[device].map((r) => {
           const key = `${device}:${r.category}`
@@ -131,7 +131,7 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start', marginTop: spacing.xs }}>
                 <View style={{ flex: 1 }}>
-                  <Field label={existing ? 'New price (₦)' : 'Price (₦)'} placeholder="e.g. 25000" keyboardType="number-pad" value={input}
+                  <Field label={existing ? 'New repair fee (₦)' : 'Repair fee (₦)'} placeholder="e.g. 5000" keyboardType="number-pad" value={input}
                     onChangeText={(t) => setPrices((p) => ({ ...p, [key]: t.replace(/[^0-9]/g, '').slice(0, 7) }))} error={err} testID={`price-${key}`} />
                 </View>
                 <Button title={existing ? 'Update' : 'Add'} kind="secondary" disabled={!input || !!err} loading={busy === key}
@@ -145,7 +145,7 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
             </View>
           )
         })}
-        <Button title="Done with prices" kind="secondary" disabled={!progress.services} style={{ marginTop: spacing.md }} onPress={() => setOpen(editable ? 3 : 0)} />
+        <Button title="Done with repair fees" kind="secondary" disabled={!progress.services} style={{ marginTop: spacing.md }} onPress={() => setOpen(editable ? 3 : 0)} />
       </Section>
 
       <Section n={3} title="Where we pay you" done={progress.bank} open={open === 3} onOpen={() => setOpen(3)}>

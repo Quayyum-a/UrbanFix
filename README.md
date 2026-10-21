@@ -4,9 +4,9 @@ Book a verified technician in Lagos, pay UrbanFix (not the technician), and only
 
 One app, three roles:
 
-- **Customer**: tap a device → tap the problem → tap a technician → request. Pay by bank transfer to UrbanFix, track the repair, check the intake and repair records, then confirm (releases payment) or report a problem. Rate the technician.
-- **Technician**: get approved (shop, prices, bank, ID), go online, accept requests, record the device's IMEI and photos at intake, finish with notes, parts and photos, see earnings.
-- **Admin**: confirm customer transfers, approve technicians, resolve issues (pay technician or refund customer), mark payouts sent.
+- **Customer**: tap a device → brand → model → problem → part quality → technician → request. The technician checks the device and confirms the price; then the customer pays UrbanFix by transfer, tracks the repair, checks the intake and repair records, and confirms (releases payment), reports a problem, or uses the warranty. The price is always shown as **Part (grade) + Service charge = Total**.
+- **Technician**: get approved (shop, repair fees, bank, ID), go online, accept requests, check the device (IMEI, photos, model, part quality, final price), get the part money once the customer pays, finish with notes and photos, get the repair fee once the customer confirms, fix warranty claims.
+- **Admin**: confirm customer transfers, approve technicians, keep the part price list up to date (with Jiji reference prices), send part money and repair fees, resolve issues (pay technician or refund customer).
 
 ## Setup (once)
 
@@ -63,13 +63,21 @@ Phone numbers aren't verified by SMS, so you can use any valid-looking Nigerian 
 
 1. **Technician** (e.g. `0801 000 0001`): pick "I fix devices", finish the 4 setup steps (any clear photo works as the ID), submit.
 2. **Admin** (your number): Technicians tab → open → Approve.
-3. **Customer** (e.g. `0801 000 0002`): Phone → Cracked screen → pick the technician → Request repair.
-4. **Technician**: Accept.
-5. **Customer**: "I've sent ₦…".
-6. **Admin**: Payments → Confirm.
-7. **Technician**: record the IMEI (dial `*#06#` on a real phone, or use the test IMEI `490154203237518`) and a photo → Start repair → describe the fix + photo → Mark as ready.
+3. **Customer** (e.g. `0801 000 0002`): Phone → iPhone → iPhone X → Cracked or dead screen → Premium (₦37,000) → pick the technician → Request repair.
+4. **Technician**: Accept, then record the IMEI (dial `*#06#` on a real phone, or use the test IMEI `490154203237518`) and a photo, check the model and quality → Send price to customer.
+5. **Customer**: check the price → "I've sent ₦…".
+6. **Admin**: Payments → Confirm. Then Payouts → part money → enter the transfer reference → Mark as sent.
+7. **Technician**: describe the fix + photo → Mark as ready.
 8. **Customer**: "Yes, it works. Release payment" → rate.
-9. **Admin**: Payouts → open → enter the transfer reference → Mark payout sent.
+9. **Admin**: Payouts → repair fee → enter the transfer reference → Mark as sent.
+
+## Pricing
+
+- **Part price**: from the price list (Admin → Prices), per exact model, repair and grade (Standard / High quality / Premium). If a model or grade has no listed price, the technician enters the part price after checking the device. Laptop and desktop parts are always priced by the technician.
+- **Service charge**: the technician's repair fee (labour, set in their profile) plus the UrbanFix fee. Customers only ever see the combined service charge.
+- **UrbanFix fee**: ₦1,500 + 5% of the part price, rounded up to the nearest ₦500, capped at ₦15,000; half for repeat customers. Change it in `public.settings` (`fee_base_kobo`, `fee_rate_bps`, `fee_cap_kobo`, `fee_round_kobo`, `repeat_fee_discount_bps`). Example: iPhone 7 battery ₦8,000 + ₦5,000 repair fee + ₦2,000 = ₦15,000.
+- **Warranty**: 7 days for Standard parts and for repairs without a part, 14 days for High quality and Premium. Change it in `public.part_grades`. One claim per repair.
+- **Jiji**: the Prices screen shows the latest Jiji asking prices for each part (range, median, number of ads) with an "Open on Jiji" link and one tap to use the median. Prices are not copied from Jiji automatically: listings are few and grade labels are inconsistent, and Jiji's terms on automated collection weren't confirmable. Prices older than 30 days are flagged "Check price".
 
 ## Add technicians you already trust
 
@@ -79,11 +87,11 @@ Skip the in-app approval for people you've vetted yourself (needs migration `002
 SELECT public.admin_add_trusted_technician(
   '08012345678', 'Tobi Adeyemi', 'Tobi Phone Clinic',
   '7 Otigba Street, Computer Village, Ikeja', 'Ikeja',
-  '[["smartphone","screen_replacement",35000], ["smartphone","diagnosis",3000]]'
+  '[["smartphone","screen_replacement",5000], ["smartphone","diagnosis",2000]]'
 );
 ```
 
-Prices are in naira. Repair names are in `public.repair_options`. The result includes a **PIN**: send it to the technician privately; they sign in with their phone number and that PIN. They're online and bookable immediately, and can change prices in the app (Account → Shop, prices, bank and ID) and add their bank account once. Running it again for the same number updates their details and prices but keeps their PIN.
+The amounts are their **repair fees** in naira (labour only; parts come from the price list). Repair names are in `public.repair_options`. The result includes a **PIN**: send it to the technician privately; they sign in with their phone number and that PIN. They're online and bookable immediately, and can change prices in the app (Account → Shop, prices, bank and ID) and add their bank account once. Running it again for the same number updates their details and prices but keeps their PIN.
 
 Don't commit technicians' real phone numbers to this repo; it's public.
 

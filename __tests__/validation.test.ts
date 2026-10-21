@@ -101,3 +101,16 @@ describe('money', () => {
     expect(formatNaira(null)).toBe('₦0')
   })
 })
+
+describe('deviceName', () => {
+  const { deviceName } = jest.requireActual('@/constants/catalog')
+  test.each([
+    ['iPhone', 'iPhone X', 'smartphone', 'iPhone X'],
+    ['Samsung', 'Galaxy A54', 'smartphone', 'Samsung Galaxy A54'],
+    ['Redmi / Xiaomi', 'Redmi Note 13', 'smartphone', 'Redmi Note 13'],
+    ['Other Android', 'Oppo A78', 'smartphone', 'Oppo A78'],
+    ['HP', 'Pavilion', 'laptop', 'HP Pavilion'],
+    [null, null, 'laptop', 'Laptop'],
+    ['Tecno', null, 'smartphone', 'Tecno'],
+  ])('%p + %p', (b, m, d, out) => expect(deviceName(b, m, d)).toBe(out))
+})

@@ -166,7 +166,7 @@ describe('availability', () => {
     await expectFail(db.as(pending).rpc('set_availability', [true]), 'once UrbanFix approves')
     const t = await db.technician({ admin })
     const c = await db.customer()
-    const find = async () => (await db.as(c).rpc('find_technicians', ['smartphone', 'screen_replacement'])).map((r) => r.technician_id)
+    const find = async () => (await db.as(c).rpc('find_technicians', ['smartphone', 'screen_replacement', null, 'standard'])).map((r) => r.technician_id)
     expect(await find()).toContain(t.id)
     expect(await find()).not.toContain(pending.id)
     await db.as(t).rpc('set_availability', [false])

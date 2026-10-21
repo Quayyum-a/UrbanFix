@@ -10,7 +10,7 @@ jest.mock('@/lib/api', () => {
   const actual = jest.requireActual('@/lib/api')
   return {
     ...actual,
-    myJobs: jest.fn(), getJob: jest.fn(), getMyTechnician: jest.fn(), myEarnings: jest.fn(), listMessages: jest.fn(),
+    myJobs: jest.fn(), getJob: jest.fn(), listBrands: jest.fn(), adminPriceBoard: jest.fn(), gradeOptions: jest.fn(), listModels: jest.fn(), getMyTechnician: jest.fn(), myEarnings: jest.fn(), listMessages: jest.fn(),
     adminJobs: jest.fn(), adminPendingTechnicians: jest.fn(), adminTechnicianDetails: jest.fn(), findTechnicians: jest.fn(),
   }
 })
@@ -32,16 +32,21 @@ const asRole = (role: Role | null, status: 'ready' | 'needs_setup' | 'signed_out
 
 const job: Job = {
   id: 'job-1', code: 'UF-AB12CD', customer_id: 'customer-1', technician_id: 'technician-1', device_type: 'smartphone',
-  category: 'screen_replacement', brand: 'Tecno', model: 'Spark 10', issue_note: 'Dropped it', service_mode: 'visit',
-  address: '12 Allen Avenue, Ikeja', price_kobo: 2_500_000, commission_kobo: 250_000, payout_kobo: 2_250_000, is_repeat: false,
+  category: 'screen_replacement', brand: 'iPhone', model: 'iPhone X', model_id: 40, issue_note: 'Dropped it', service_mode: 'visit',
+  address: '12 Allen Avenue, Ikeja', price_kobo: 4_550_000, commission_kobo: 350_000, payout_kobo: 4_200_000, labour_kobo: 500_000,
+  grade: 'premium', part_label: 'GX OLED', part_kobo: 3_700_000, part_pending: false, estimate_kobo: 4_550_000, price_confirmed: true,
+  quoted_at: '2026-10-14T10:00:00Z', part_payout_status: 'due', warranty_days: 14, warranty_until: null, warranty_reason: null,
+  warranty_claimed_at: null, warranty_notes: null, warranty_photos: [], warranty_done_at: null, is_repeat: false,
   status: 'in_repair', status_note: null, payment_reference: 'Ada Obi', payment_submitted_at: null, paid_at: null,
   intake_identifier: '490154203237518', intake_notes: 'Cracked', intake_photos: ['job-1/intake-1.jpg'], intake_at: '2026-10-14T10:00:00Z',
   repair_notes: null, parts_replaced: null, completion_photos: [], ready_at: null, completed_at: null, completed_by: null,
   dispute_reason: null, refund_reference: null, payout_status: 'not_due', created_at: '2026-10-14T09:00:00Z', updated_at: '2026-10-14T10:00:00Z',
 }
-const summary = { ...job, other_party: 'Emeka Phone Clinic' }
+const summary = { ...job, payout_kobo: job.payout_kobo ?? null, other_party: 'Emeka Phone Clinic' }
 const details = (role: Role): JobDetails => ({
   job, viewer_role: role,
+  breakdown: { part_kobo: 3_700_000, part_pending: false, part_label: 'GX OLED', grade: 'premium', grade_label: 'Premium', grade_description: null,
+    service_charge_kobo: 850_000, total_kobo: 4_550_000, estimate_kobo: 4_550_000, price_confirmed: true, warranty_days: 14, warranty_until: null },
   customer: { name: 'Ada Obi', phone: '+2348031234567' },
   technician: { name: 'Emeka Okafor', shop_name: 'Emeka Phone Clinic', shop_address: 'Shop 14, Computer Village', area: 'Ikeja', phone: '+2348091234567' },
   events: [{ id: 1, actor_role: 'customer', from_status: null, to_status: 'requested', note: null, created_at: '2026-10-14T09:00:00Z' },
@@ -98,11 +103,11 @@ describe('customer screens', () => {
   test('home', async () => {
     render(React.createElement(load('customer/index')))
     expect(screen.getByText('Hi Ada, what needs fixing?')).toBeTruthy()
-    expect(await screen.findByText('Tecno Spark 10')).toBeTruthy()
+    expect(await screen.findByText('iPhone X')).toBeTruthy()
   })
   test('repairs', async () => {
     render(React.createElement(load('customer/repairs')))
-    expect(await screen.findByText('Tecno Spark 10')).toBeTruthy()
+    expect(await screen.findByText('iPhone X')).toBeTruthy()
   })
   test('account', () => {
     render(React.createElement(load('customer/account')))
@@ -131,7 +136,7 @@ describe('technician screens', () => {
   test('jobs home (approved, online)', async () => {
     render(React.createElement(load('technician/index')))
     expect(await screen.findByText("You're online")).toBeTruthy()
-    expect(await screen.findByText('Tecno Spark 10')).toBeTruthy()
+    expect(await screen.findByText('iPhone X')).toBeTruthy()
   })
   test('jobs home (draft) prompts to finish setup', async () => {
     m.getMyTechnician.mockResolvedValue(techData('draft'))
@@ -176,8 +181,8 @@ describe('technician screens', () => {
   })
   test('repair screen shows earnings, not the customer price', async () => {
     render(React.createElement(load('job/[id]/index')))
-    expect(await screen.findByText('₦22,500')).toBeTruthy()
-    expect(screen.getByText('you earn')).toBeTruthy()
+    expect(await screen.findByText('₦42,000')).toBeTruthy()
+    expect(screen.getByText('you get')).toBeTruthy()
   })
   test('cannot book repairs', () => {
     render(React.createElement(load('book')))
@@ -189,13 +194,24 @@ describe('admin screens', () => {
   beforeEach(() => asRole('admin'))
   test('to-do list', async () => {
     render(React.createElement(load('admin/index')))
-    expect(await screen.findByText('Received ₦25,000. Confirm')).toBeTruthy()
+    expect(await screen.findByText('Received ₦45,500. Confirm')).toBeTruthy()
   })
   test('technician review', async () => {
     ;(globalThis as any).__setParams({ id: 'technician-1' })
     render(React.createElement(load('admin-technician/[id]')))
     expect(await screen.findByText('12345678901')).toBeTruthy()
     expect(screen.getByTestId('approve')).toBeTruthy()
+  })
+  test('prices: shows models needing prices with Jiji reference', async () => {
+    m.listBrands.mockResolvedValue([{ device_type: 'smartphone', brand: 'iphone', label: 'iPhone', is_android: false, sort_order: 1 }])
+    m.adminPriceBoard.mockResolvedValue([
+      { model_id: 40, model_name: 'iPhone XR', category: 'screen_replacement', category_label: 'Cracked or dead screen', grade: 'standard',
+        grade_label: 'Standard', price_kobo: null, market_label: null, source: null, updated_at: null, stale: false, obs_count: 3,
+        obs_low_kobo: 1_800_000, obs_median_kobo: 3_500_000, obs_high_kobo: 6_000_000, obs_url: 'https://jiji.ng/x', obs_date: '2026-10-21' },
+    ])
+    render(React.createElement(load('admin/prices')))
+    expect(await screen.findByText('iPhone XR')).toBeTruthy()
+    expect(screen.getByText('0 of 1 prices set · Jiji data available')).toBeTruthy()
   })
   test('account', () => {
     render(React.createElement(load('admin/account')))

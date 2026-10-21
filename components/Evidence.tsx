@@ -34,7 +34,7 @@ function Photos({ paths }: { paths: string[] }) {
 }
 
 export function Evidence({ job }: { job: Job }) {
-  if (!job.intake_at && !job.ready_at) return null
+  if (!job.intake_at && !job.completion_photos.length) return null
   return (
     <>
       {job.intake_at ? (
@@ -42,14 +42,24 @@ export function Evidence({ job }: { job: Job }) {
           <Text style={font.bodyStrong}>Device received</Text>
           <Small>Recorded {new Date(job.intake_at).toLocaleString()}</Small>
           <Row label="IMEI / serial" value={job.intake_identifier ?? '-'} />
+          {job.model ? <Row label="Model" value={job.model} /> : null}
           {job.intake_notes ? <Row label="Condition" value={job.intake_notes} /> : null}
           <Photos paths={job.intake_photos} />
         </Card>
       ) : null}
-      {job.ready_at ? (
+      {job.warranty_done_at ? (
+        <Card>
+          <Text style={font.bodyStrong}>Warranty fix</Text>
+          <Small>Recorded {new Date(job.warranty_done_at).toLocaleString()}</Small>
+          <Row label="Problem reported" value={job.warranty_reason ?? '-'} />
+          <Row label="What was fixed" value={job.warranty_notes ?? '-'} />
+          <Photos paths={job.warranty_photos} />
+        </Card>
+      ) : null}
+      {job.completion_photos.length ? (
         <Card>
           <Text style={font.bodyStrong}>Repair done</Text>
-          <Small>Recorded {new Date(job.ready_at).toLocaleString()}</Small>
+          {job.ready_at ? <Small>Recorded {new Date(job.ready_at).toLocaleString()}</Small> : null}
           <Row label="What was fixed" value={job.repair_notes ?? '-'} />
           <Row label="Parts replaced" value={job.parts_replaced ?? 'None'} />
           <Photos paths={job.completion_photos} />

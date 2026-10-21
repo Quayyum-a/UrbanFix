@@ -3,8 +3,8 @@
 // errors into plain-language messages.
 import { supabase } from './supabase'
 import type {
-  Earnings, Job, JobDetails, JobSummary, Message, Profile, Review, Service, Technician,
-  TechnicianMatch, TechnicianPrivate,
+  DeviceBrand, DeviceModel, Earnings, Grade, GradeOption, Job, JobDetails, JobSummary, Message, PriceBoardRow, Profile,
+  Review, Service, Technician, TechnicianMatch, TechnicianPrivate,
 } from './types'
 import { clean, normalizePhone, phoneToEmail, pinToPassword } from './validation'
 
@@ -128,17 +128,35 @@ export const setAvailability = (available: boolean) => rpc<Technician>('set_avai
 export const myEarnings = () => rpc<Earnings>('my_earnings')
 
 // ---------------- booking & jobs ----------------
-export const findTechnicians = (deviceType: string, category: string) =>
-  rpc<TechnicianMatch[]>('find_technicians', { p_device_type: deviceType, p_category: category })
+// ---------------- catalog ----------------
+export async function listBrands(deviceType: string): Promise<DeviceBrand[]> {
+  const { data, error } = await supabase.from('device_brands').select('*').eq('device_type', deviceType).order('sort_order')
+  if (error) throw error
+  return (data ?? []) as DeviceBrand[]
+}
+
+export async function listModels(deviceType: string, brand: string): Promise<DeviceModel[]> {
+  const { data, error } = await supabase.from('device_models').select('id, device_type, brand, name, hint, sort_order')
+    .eq('device_type', deviceType).eq('brand', brand).eq('is_active', true).order('sort_order', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((m) => ({ ...m, id: Number(m.id) })) as DeviceModel[]
+}
+
+export const gradeOptions = (modelId: number | null, category: string) =>
+  rpc<GradeOption[]>('grade_options', { p_model_id: modelId, p_category: category })
+
+export const findTechnicians = (deviceType: string, category: string, modelId: number | null, grade: Grade | null) =>
+  rpc<TechnicianMatch[]>('find_technicians', { p_device_type: deviceType, p_category: category, p_model_id: modelId, p_grade: grade })
 
 export function createJob(input: {
-  technicianId: string; deviceType: string; category: string
-  brand?: string | null; model?: string | null; issueNote?: string | null
+  technicianId: string; deviceType: string; brand: string; modelId: number | null; modelText?: string | null
+  category: string; grade: Grade | null; issueNote?: string | null
   mode: 'visit' | 'drop_off'; address?: string | null
 }) {
   return rpc<Job>('create_job', {
-    p_technician_id: input.technicianId, p_device_type: input.deviceType, p_category: input.category,
-    p_brand: nullable(input.brand), p_model: nullable(input.model), p_issue_note: nullable(input.issueNote),
+    p_technician_id: input.technicianId, p_device_type: input.deviceType, p_brand: input.brand,
+    p_model_id: input.modelId, p_model_text: input.modelId ? null : nullable(input.modelText),
+    p_category: input.category, p_grade: input.grade, p_issue_note: nullable(input.issueNote),
     p_service_mode: input.mode, p_address: input.mode === 'visit' ? nullable(input.address) : null,
   })
 }
@@ -149,8 +167,18 @@ export const acceptJob = (id: string) => rpc<Job>('accept_job', { p_job_id: id }
 export const declineJob = (id: string, reason?: string | null) => rpc<Job>('decline_job', { p_job_id: id, p_reason: nullable(reason) })
 export const cancelJob = (id: string, reason?: string | null) => rpc<Job>('cancel_job', { p_job_id: id, p_reason: nullable(reason) })
 export const submitPayment = (id: string, reference: string) => rpc<Job>('submit_payment', { p_job_id: id, p_reference: clean(reference) })
-export const recordIntake = (id: string, identifier: string, notes: string | null, photos: string[]) =>
-  rpc<Job>('record_intake', { p_job_id: id, p_identifier: identifier, p_notes: nullable(notes), p_photos: photos })
+/** Technician checks the device and confirms the final price (before the customer pays). */
+export const recordIntake = (id: string, input: {
+  identifier: string; notes: string | null; photos: string[]
+  modelId?: number | null; modelText?: string | null; category?: string | null; grade?: Grade | null; partKobo?: number | null
+}) =>
+  rpc<Job>('record_intake', {
+    p_job_id: id, p_identifier: input.identifier, p_notes: nullable(input.notes), p_photos: input.photos,
+    p_model_id: input.modelId ?? null, p_model_text: nullable(input.modelText), p_category: input.category ?? null,
+    p_grade: input.grade ?? null, p_part_kobo: input.partKobo ?? null,
+  })
+export const declineQuote = (id: string, reason?: string | null) => rpc<Job>('decline_quote', { p_job_id: id, p_reason: nullable(reason) })
+export const claimWarranty = (id: string, reason: string) => rpc<Job>('claim_warranty', { p_job_id: id, p_reason: clean(reason) })
 export const markReady = (id: string, repairNotes: string, partsReplaced: string | null, photos: string[]) =>
   rpc<Job>('mark_ready', { p_job_id: id, p_repair_notes: clean(repairNotes), p_parts_replaced: nullable(partsReplaced), p_photos: photos })
 export const confirmCompletion = (id: string) => rpc<Job>('confirm_completion', { p_job_id: id })
@@ -167,13 +195,8 @@ export async function listMessages(jobId: string, afterId = 0): Promise<Message[
 export const sendMessage = (jobId: string, body: string) => rpc<Message>('send_message', { p_job_id: jobId, p_body: body.trim() })
 
 // ---------------- admin ----------------
-export async function adminJobs(statuses: string[], extra?: { payoutDue?: boolean }) {
-  let q = supabase.from('jobs').select('*').in('status', statuses).order('updated_at', { ascending: true }).limit(100)
-  if (extra?.payoutDue) q = q.eq('payout_status', 'due')
-  const { data, error } = await q
-  if (error) throw error
-  return (data ?? []) as Job[]
-}
+export const adminJobs = (statuses: string[] | null, payout?: 'repair_fee' | 'part') =>
+  rpc<Job[]>('admin_list_jobs', { p_statuses: statuses, p_payout: payout ?? null })
 export async function adminPendingTechnicians() {
   const { data, error } = await supabase.from('technicians').select('*, profiles!technicians_id_fkey(full_name, phone)')
     .eq('status', 'pending').order('submitted_at', { ascending: true })
@@ -189,4 +212,14 @@ export const adminRejectPayment = (id: string, note: string) => rpc<Job>('admin_
 export const adminResolveDispute = (id: string, outcome: 'release' | 'refund', note: string, refundReference?: string | null) =>
   rpc<Job>('admin_resolve_dispute', { p_job_id: id, p_outcome: outcome, p_note: clean(note), p_refund_reference: nullable(refundReference) })
 export const adminMarkPayoutPaid = (id: string, reference: string) => rpc<Job>('admin_mark_payout_paid', { p_job_id: id, p_reference: clean(reference) })
+export const adminMarkPartPayoutPaid = (id: string, reference: string) =>
+  rpc<Job>('admin_mark_part_payout_paid', { p_job_id: id, p_reference: clean(reference) })
 export const adminAutoRelease = () => rpc<number>('admin_auto_release')
+export const adminPriceBoard = (deviceType: string, brand: string) =>
+  rpc<PriceBoardRow[]>('admin_price_board', { p_device_type: deviceType, p_brand: brand })
+export const adminSetPartPrice = (modelId: number, category: string, grade: Grade, priceKobo: number, marketLabel?: string | null) =>
+  rpc<unknown>('admin_set_part_price', { p_model_id: modelId, p_category: category, p_grade: grade, p_price_kobo: priceKobo, p_market_label: nullable(marketLabel) })
+export const adminRemovePartPrice = (modelId: number, category: string, grade: Grade) =>
+  rpc<void>('admin_remove_part_price', { p_model_id: modelId, p_category: category, p_grade: grade })
+export const adminAddModel = (deviceType: string, brand: string, name: string, hint?: string | null) =>
+  rpc<DeviceModel>('admin_add_model', { p_device_type: deviceType, p_brand: brand, p_name: clean(name), p_hint: nullable(hint) })

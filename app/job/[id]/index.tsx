@@ -4,14 +4,15 @@ import { Redirect, router, Stack, useFocusEffect, useLocalSearchParams } from 'e
 import React, { useCallback, useRef, useState } from 'react'
 import { Linking, Text, View } from 'react-native'
 import { Evidence } from '@/components/Evidence'
+import { PriceBreakdown } from '@/components/PriceBreakdown'
 import { JobActions } from '@/components/JobActions'
 import { Banner, Button, Card, Empty, Heading, Loading, Pill, Row, Screen, Small, Stars } from '@/components/ui'
-import { deviceLabel, repairLabel } from '@/constants/catalog'
+import { deviceName, repairLabel } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import { friendlyError, getJob } from '@/lib/api'
 import { hoursLeft, nextStep, PROGRESS_STEPS, progressIndex, STATUS_LABEL, tone } from '@/lib/jobFlow'
 import { useSession } from '@/lib/session'
-import type { JobDetails } from '@/lib/types'
+import type { JobDetails, PayoutStatus } from '@/lib/types'
 import { displayPhone, formatNaira } from '@/lib/validation'
 
 function Progress({ index }: { index: number }) {
@@ -70,7 +71,7 @@ export default function JobScreen() {
   const { job, viewer_role: role } = d
   const other = role === 'customer' ? (d.technician.shop_name ?? d.technician.name) : d.customer.name
   const otherPhone = role === 'customer' ? d.technician.phone : d.customer.phone
-  const device = [job.brand, job.model].filter(Boolean).join(' ') || deviceLabel(job.device_type)
+  const device = deviceName(job.brand, job.model, job.device_type)
   const closed = ['declined', 'cancelled'].includes(job.status)
 
   return (
@@ -85,14 +86,25 @@ export default function JobScreen() {
             <Small>{repairLabel(job.device_type, job.category)}</Small>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={font.heading}>{formatNaira(role === 'technician' ? job.payout_kobo : job.price_kobo)}</Text>
-            <Small>{role === 'technician' ? 'you earn' : role === 'admin' ? `tech gets ${formatNaira(job.payout_kobo)}` : 'total'}</Small>
+            <Text style={font.heading}>{formatNaira(role === 'technician' ? (job.payout_kobo ?? 0) : job.price_kobo)}</Text>
+            <Small>{role === 'technician' ? 'you get' : d.breakdown.price_confirmed ? 'total' : 'estimate'}</Small>
           </View>
         </View>
         <View style={{ marginTop: spacing.sm }}><Pill text={STATUS_LABEL[job.status]} tone={tone(role, job.status)} /></View>
       </Card>
 
       {role !== 'admin' ? <Progress index={progressIndex(job.status)} /> : null}
+      {role === 'customer' && job.status !== 'quoted' ? (
+        <Card>
+          <PriceBreakdown partKobo={d.breakdown.part_kobo} partPending={d.breakdown.part_pending} gradeLabel={d.breakdown.grade_label}
+            partLabel={d.breakdown.part_label} serviceChargeKobo={d.breakdown.service_charge_kobo}
+            needsPart={d.breakdown.part_kobo > 0 || !!d.breakdown.grade || d.breakdown.part_pending}
+            estimate={!d.breakdown.price_confirmed && ['requested', 'accepted'].includes(job.status)} />
+          {d.breakdown.warranty_until ? (
+            <Small style={{ marginTop: spacing.xs }}>Warranty until {new Date(d.breakdown.warranty_until).toLocaleDateString()}{job.warranty_claimed_at ? ' (used)' : ''}</Small>
+          ) : d.breakdown.grade ? <Small style={{ marginTop: spacing.xs }}>{d.breakdown.warranty_days}-day warranty after the repair</Small> : null}
+        </Card>
+      ) : null}
       <Banner tone="neutral" icon="arrow-forward-circle-outline"
         text={nextStep(role, job.status, { mode: job.service_mode, other, hoursLeft: job.status === 'awaiting_confirmation' ? hoursLeft(job.ready_at, d.auto_release_hours) : null })} />
       {job.status_note && !['completed'].includes(job.status) ? <Banner tone={job.status === 'accepted' ? 'bad' : 'warn'} text={`Note: ${job.status_note}`} /> : null}
@@ -118,8 +130,11 @@ export default function JobScreen() {
           <>
             <Row label="Customer phone" value={displayPhone(d.customer.phone)} />
             <Row label="Technician phone" value={displayPhone(d.technician.phone)} />
-            <Row label="Commission" value={`${formatNaira(job.commission_kobo)}${job.is_repeat ? ' (repeat rate)' : ''}`} />
-            <Row label="Payout" value={job.payout_status === 'paid' ? `Sent · ${job.payout_reference ?? ''}` : job.payout_status === 'due' ? 'Due' : 'Not due'} />
+            <Row label="Part" value={`${formatNaira(job.part_kobo)}${job.part_label ? ` · ${job.part_label}` : ''}${d.breakdown.grade_label ? ` · ${d.breakdown.grade_label}` : ''}`} />
+            <Row label="Repair fee" value={formatNaira(job.labour_kobo ?? 0)} />
+            <Row label="UrbanFix fee" value={`${formatNaira(job.commission_kobo ?? 0)}${job.is_repeat ? ' (repeat rate)' : ''}`} />
+            <Row label="Part money" value={payoutText(job.part_payout_status, null)} />
+            <Row label="Repair fee payout" value={payoutText(job.payout_status, job.payout_reference ?? null)} />
           </>
         ) : null}
         {job.dispute_reason ? <Row label="Issue raised" value={job.dispute_reason} /> : null}
@@ -154,4 +169,9 @@ export default function JobScreen() {
       <Small style={{ marginTop: spacing.md }}>Repair {job.code}</Small>
     </Screen>
   )
+}
+
+function payoutText(status: PayoutStatus | undefined, reference: string | null): string {
+  if (status === 'paid') return reference ? `Sent · ${reference}` : 'Sent'
+  return status === 'due' ? 'Due now' : 'Not due'
 }
