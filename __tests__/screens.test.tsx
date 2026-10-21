@@ -85,6 +85,22 @@ describe('entry', () => {
       unmount()
     }
   })
+  test('version mismatch shows "Update needed" instead of prices', () => {
+    const Gate = load('index')
+    asRole('customer', 'app_outdated' as never)
+    const { unmount } = render(<Gate />)
+    expect(screen.getByText('Update needed')).toBeTruthy()
+    expect(screen.getByText(/git pull/)).toBeTruthy()
+    unmount()
+    asRole('customer', 'db_outdated' as never)
+    render(<Gate />)
+    expect(screen.getByText(/database is missing an update/)).toBeTruthy()
+  })
+  test('other screens send outdated sessions back to the update screen (no redirect loop)', () => {
+    asRole('customer', 'app_outdated' as never)
+    render(React.createElement(load('customer/_layout')))
+    expect(screen.getByTestId('redirect')).toHaveTextContent('redirect:/')
+  })
   test('setup screen', () => {
     asRole(null, 'needs_setup')
     const Setup = load('setup')

@@ -127,9 +127,13 @@ export function priceProblem(input: string): string | null {
   return null
 }
 
+/** Kobo → "₦25,000". A missing or invalid amount shows "—", never a misleading ₦0. */
 export function formatNaira(kobo: number | string | null | undefined): string {
-  const n = Math.round(Number(kobo ?? 0) / 100)
-  return '₦' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (kobo === null || kobo === undefined || kobo === '') return '—'
+  const v = Number(kobo)
+  if (!Number.isFinite(v)) return '—'
+  const n = Math.round(v / 100)
+  return (n < 0 ? '-₦' : '₦') + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 export function textProblem(raw: string, { min = 0, max, field }: { min?: number; max: number; field: string }): string | null {

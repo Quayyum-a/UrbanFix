@@ -52,7 +52,7 @@ export default function SignIn() {
   }, [locked])
 
   // Signed in: let the gate route them.
-  if (status === 'ready' || status === 'needs_setup') return <Redirect href={homeFor(status, profile) as never} />
+  if (status !== 'signed_out' && status !== 'loading') return <Redirect href={homeFor(status, profile) as never} />
 
   const continueWithPhone = async () => {
     if (!e164) { setError('Enter a valid Nigerian mobile number, like 0803 123 4567.'); return }
