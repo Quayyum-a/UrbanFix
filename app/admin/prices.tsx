@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect } from 'expo-router'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Linking, Pressable, Text, View } from 'react-native'
-import { Banner, Button, Card, Chips, Empty, ErrorText, Field, Loading, Pill, Screen, Small, tap, Title } from '@/components/ui'
+import { Banner, Button, Card, Chips, Empty, ErrorText, Field, Pill, Screen, Skeleton, Small, tap, Title } from '@/components/ui'
 import { DEVICES, type DeviceType } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import * as api from '@/lib/api'
@@ -148,7 +148,7 @@ export default function Prices() {
       ) : (
         <>
           <Chips<Filter> value={filter} onChange={setFilter} options={[{ value: 'needs', label: 'Needs a price' }, { value: 'all', label: 'All models' }]} />
-          {rows === null ? <Loading /> : models.length === 0 ? (
+          {rows === null ? <Skeleton rows={4} /> : models.length === 0 ? (
             <Empty icon="checkmark-done-outline" title="Every model here has prices" />
           ) : models.map((m) => (
             <Card key={m.id}>

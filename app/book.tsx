@@ -6,10 +6,11 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { PriceBreakdown } from '@/components/PriceBreakdown'
 import {
-  Banner, Button, Card, Chips, Choice, Empty, ErrorText, Field, Loading, P, Pill, Screen, Small, tap, Title,
+  Banner, Button, Card, Chips, Choice, Empty, ErrorText, Field, P, Pill, Screen, Skeleton, Small, tap, Title,
 } from '@/components/ui'
 import { deviceLabel, isDeviceType, partModeOf, REPAIRS, repairLabel, type DeviceType } from '@/constants/catalog'
 import { colors, font, radius, spacing } from '@/constants/theme'
+import { areaDistanceKm, nearLabel } from '@/lib/location'
 import { createJob, findTechnicians, friendlyError, gradeOptions, listBrands, listModels, updateMyProfile } from '@/lib/api'
 import { useSession } from '@/lib/session'
 import type { DeviceBrand, DeviceModel, Grade, GradeOption, TechnicianMatch } from '@/lib/types'
@@ -118,7 +119,7 @@ export default function Book() {
         <Stack.Screen options={{ title }} />
         <Title sub="Tap your brand.">What {deviceLabel(device).toLowerCase()} is it?</Title>
         <ErrorText error={error} />
-        {brands === null ? <Loading /> : (
+        {brands === null ? <Skeleton rows={3} /> : (
           <View style={styles.grid}>
             {brands.map((b) => (
               <Pressable key={b.brand} testID={`brand-${b.brand}`} accessibilityRole="button" accessibilityLabel={b.label}
@@ -143,7 +144,7 @@ export default function Book() {
           Which {brand.label} model?
         </Title>
         <ErrorText error={error} />
-        {models === null ? <Loading /> : (
+        {models === null ? <Skeleton rows={4} /> : (
           <>
             {models.length > 8 ? (
               <TextInput style={styles.search} placeholder="Search models" placeholderTextColor={colors.textFaint} value={search}
@@ -201,7 +202,7 @@ export default function Book() {
         <Back label="Change problem" onPress={() => resetFrom('problem')} />
         <Title sub={`${modelName} · ${repairLabel(device, category)}`}>Choose part quality</Title>
         <ErrorText error={error} />
-        {grades === null ? <Loading /> : (
+        {grades === null ? <Skeleton rows={3} /> : (
           <>
             {!showPrices ? (
               <Banner tone="neutral" icon="search-outline" text="The part price for this model is confirmed after the technician checks your device. Pick the quality you want." />
@@ -236,10 +237,10 @@ export default function Book() {
         <Back label={noGrade ? 'Change problem' : 'Change quality'} onPress={() => resetFrom(noGrade ? 'problem' : 'grade')} />
         <Title sub={`${modelName} · ${repairLabel(device, category)}${grade ? ` · ${grade.label}` : ''}`}>Choose a technician</Title>
         <ErrorText error={error} />
-        {techs === null ? <Loading label="Finding technicians" /> : techs.length === 0 ? (
+        {techs === null ? <Skeleton rows={3} testID="finding-technicians" /> : techs.length === 0 ? (
           <Empty icon="search-outline" title="No technicians available for this yet"
             text="We're adding verified technicians every week. Try a different problem or check back soon." />
-        ) : techs.map((t) => (
+        ) : byDistance(techs, profile?.area).map((t) => (
           <Card key={t.technician_id} testID={`tech-${t.technician_id}`} onPress={() => setTech(t)}
             accessibilityLabel={`${t.shop_name ?? t.full_name}, ${t.part_pending ? `service charge ${formatNaira(t.service_charge_kobo)} plus part` : formatNaira(t.total_kobo)}`}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
@@ -257,6 +258,7 @@ export default function Book() {
               <Small style={{ color: colors.success }}>Verified</Small>
               {t.rating ? <Small>★ {Number(t.rating).toFixed(1)} ({t.reviews})</Small> : <Small>New on UrbanFix</Small>}
               {t.jobs_done ? <Small>· {t.jobs_done} repairs</Small> : null}
+              {nearLabel(profile?.area, t.area) ? <Small>· {nearLabel(profile?.area, t.area)}</Small> : null}
               {t.used_before ? <Pill text="Used before · lower charge" tone="good" /> : null}
             </View>
           </Card>
@@ -329,3 +331,12 @@ const styles = StyleSheet.create({
   tile: { width: '31%', minHeight: 92, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: spacing.sm },
   search: { minHeight: 50, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, backgroundColor: colors.surface, marginBottom: spacing.md, ...font.body },
 })
+
+/** Technicians you've used before first (the database already does that), then the nearest. Stable otherwise. */
+function byDistance(techs: TechnicianMatch[], myArea: string | null | undefined): TechnicianMatch[] {
+  if (!myArea) return techs
+  return techs
+    .map((t, i) => ({ t, i, km: areaDistanceKm(myArea, t.area) ?? 999 }))
+    .sort((a, b) => Number(b.t.used_before) - Number(a.t.used_before) || a.km - b.km || a.i - b.i)
+    .map((x) => x.t)
+}

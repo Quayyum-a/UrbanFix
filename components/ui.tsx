@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text,
+  ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text,
   TextInput, View, type TextInputProps, type ViewStyle,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -257,6 +257,41 @@ export function Loading({ label }: { label?: string }) {
   )
 }
 
+/** Grey placeholder shapes that gently pulse while content loads. */
+export function Skeleton({ rows = 3, testID = 'skeleton' }: { rows?: number; testID?: string }) {
+  const [pulse] = useState(() => new Animated.Value(0.5))
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 650, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.5, duration: 650, useNativeDriver: true }),
+    ]))
+    loop.start()
+    return () => loop.stop()
+  }, [pulse])
+  return (
+    <View testID={testID} accessibilityLabel="Loading" accessibilityRole="progressbar">
+      {Array.from({ length: rows }, (_, i) => (
+        <Animated.View key={i} style={[styles.card, { opacity: pulse }]}>
+          <View style={[styles.bone, { width: '55%', height: 16 }]} />
+          <View style={[styles.bone, { width: '35%', marginTop: spacing.sm }]} />
+          <View style={[styles.bone, { width: 110, height: 22, marginTop: spacing.md, borderRadius: radius.pill }]} />
+        </Animated.View>
+      ))}
+    </View>
+  )
+}
+
+/** Red dot (with a count when it helps) for unread messages. */
+export function Dot({ count, style, testID }: { count?: number; style?: ViewStyle; testID?: string }) {
+  const label = count && count > 1 ? (count > 9 ? '9+' : String(count)) : null
+  return (
+    <View testID={testID} accessibilityLabel={`${count ?? 1} unread message${(count ?? 1) > 1 ? 's' : ''}`}
+      style={[label ? styles.dotCount : styles.dot, style]}>
+      {label ? <Text style={styles.dotText}>{label}</Text> : null}
+    </View>
+  )
+}
+
 export function Empty({ icon = 'file-tray-outline', title, text, action }: {
   icon?: keyof typeof Ionicons.glyphMap; title: string; text?: string; action?: React.ReactNode
 }) {
@@ -300,5 +335,9 @@ const styles = StyleSheet.create({
   choice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface, marginBottom: spacing.sm, minHeight: 64 },
   pill: { alignSelf: 'flex-start', paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radius.pill },
   banner: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.md, alignItems: 'flex-start' },
+  bone: { height: 12, borderRadius: 6, backgroundColor: colors.border },
+  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.danger, borderWidth: 2, borderColor: colors.surface },
+  dotCount: { minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  dotText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
 })

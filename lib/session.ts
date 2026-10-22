@@ -2,6 +2,8 @@ import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import { getMyProfile } from './api'
 import { versionProblem } from './appVersion'
+import { forgetJobs } from './jobCache'
+import { forgetTechnician } from './useTechnician'
 import { isConfigured, supabase } from './supabase'
 import type { Profile } from './types'
 
@@ -31,11 +33,14 @@ export const useSession = create<SessionState>((set, get) => ({
     }
     try {
       // App and database must agree on how prices work, or amounts would be wrong.
-      const { data: cfg, error: cfgError } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle()
+      // Both requests go out together, so sign-in waits for one round trip, not two.
+      const [{ data: cfg, error: cfgError }, profile] = await Promise.all([
+        supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+        getMyProfile(),
+      ])
       if (cfgError && !/permission|jwt/i.test(cfgError.message)) throw cfgError
       const problem = versionProblem(cfg as { pricing_version?: number; min_app_build?: number } | null)
       if (problem) { set({ status: problem, error: null }); return }
-      const profile = await getMyProfile()
       set({ profile, status: profile ? 'ready' : 'needs_setup', error: null })
     } catch (e) {
       set({ status: 'error', error: (e as Error).message })
@@ -57,7 +62,10 @@ export const useSession = create<SessionState>((set, get) => ({
       const prev = get().session
       set({ session })
       // Only reload the profile when the signed-in user actually changes.
-      if (event === 'SIGNED_OUT' || session?.user.id !== prev?.user.id) void get().refresh()
+      if (event === 'SIGNED_OUT' || session?.user.id !== prev?.user.id) {
+        forgetJobs(); forgetTechnician() // never show one person's data to the next
+        void get().refresh()
+      }
     })
     return () => data.subscription.unsubscribe()
   },

@@ -3,15 +3,22 @@ import { useCallback, useState } from 'react'
 import { friendlyError, getMyTechnician } from './api'
 import type { Service, Technician, TechnicianPrivate } from './types'
 
+type TechData = { tech: Technician; priv: TechnicianPrivate | null; services: Service[] }
+// Last loaded copy, so screens open instantly and refresh quietly.
+let last: TechData | null = null
+export const forgetTechnician = () => { last = null }
+
 export function useMyTechnician() {
-  const [data, setData] = useState<{ tech: Technician; priv: TechnicianPrivate | null; services: Service[] } | null>(null)
+  const [data, setData] = useState<TechData | null>(() => last)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
 
   const load = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true)
     try {
-      setData(await getMyTechnician())
+      const d = await getMyTechnician()
+      last = d
+      setData(d)
       setError(null)
     } catch (e) {
       setError(friendlyError(e))

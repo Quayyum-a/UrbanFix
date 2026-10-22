@@ -1,15 +1,18 @@
 // Admin to-do list: payments to confirm, technicians to approve, issues, payouts.
 import { router, useFocusEffect } from 'expo-router'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import { Alert, Text, View } from 'react-native'
 import { JobItem } from '@/components/JobItem'
-import { Button, Card, Chips, Empty, ErrorText, Loading, Screen, Small, Title } from '@/components/ui'
+import { Button, Card, Chips, Empty, ErrorText, Screen, Skeleton, Small, Title } from '@/components/ui'
+import { deviceName } from '@/constants/catalog'
+import { buzz } from '@/lib/buzz'
+import { useLive } from '@/lib/live'
 import { font, spacing } from '@/constants/theme'
 import * as api from '@/lib/api'
 import type { Job, Technician } from '@/lib/types'
 import { displayPhone, formatNaira } from '@/lib/validation'
 
-type Tab = 'payments' | 'technicians' | 'issues' | 'payouts'
+type Tab = 'payments' | 'messages' | 'technicians' | 'issues' | 'payouts'
 type PendingTech = Technician & { profiles: { full_name: string; phone: string } | null }
 
 export default function AdminHome() {
@@ -22,24 +25,39 @@ export default function AdminHome() {
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
+  const [recent, setRecent] = useState<Job[] | null>(null)
+  const unread = useLive((st) => st.unread)
+  const showToast = useLive((st) => st.showToast)
+  const seenPayments = useRef<Set<string> | null>(null)
+  const unreadIds = Object.keys(unread).filter((id) => unread[id]! > 0)
+  const chats = (recent ?? []).filter((j) => unreadIds.includes(j.id))
 
   const load = useCallback(async (manual = false) => {
     if (manual) setRefreshing(true)
     try {
-      const [p, i, o, parts, t] = await Promise.all([
+      const [p, i, o, parts, t, all] = await Promise.all([
         api.adminJobs(['payment_submitted']),
         api.adminJobs(['disputed']),
         api.adminJobs(null, 'repair_fee'),
         api.adminJobs(null, 'part'),
         api.adminPendingTechnicians(),
+        api.adminJobs(null),
       ])
-      setPayments(p); setIssues(i); setPayouts(o); setPartPayouts(parts); setTechs(t); setError(null)
+      // A new payment to confirm is the admin's milestone: buzz once per payment.
+      const fresh = seenPayments.current ? p.filter((j) => !seenPayments.current!.has(j.id)) : []
+      seenPayments.current = new Set(p.map((j) => j.id))
+      if (fresh[0]) {
+        buzz('milestone')
+        showToast({ kind: 'milestone', jobId: fresh[0].id, title: `Payment to confirm: ${formatNaira(fresh[0].price_kobo)}`,
+          text: `${deviceName(fresh[0].brand, fresh[0].model, fresh[0].device_type)} · ${fresh[0].code}. Check the bank, then confirm.` })
+      }
+      setPayments(p); setIssues(i); setPayouts(o); setPartPayouts(parts); setTechs(t); setRecent(all); setError(null)
     } catch (e) {
       setError(api.friendlyError(e))
     } finally {
       setRefreshing(false)
     }
-  }, [])
+  }, [showToast])
 
   useFocusEffect(useCallback(() => {
     void load()
@@ -75,12 +93,13 @@ export default function AdminHome() {
       <Title>UrbanFix admin</Title>
       <Chips<Tab> value={tab} onChange={setTab} options={[
         { value: 'payments', label: `Payments${count(payments)}` },
+        { value: 'messages', label: `Messages${chats.length ? ` (${chats.length})` : ''}` },
         { value: 'technicians', label: `Technicians${count(techs)}` },
         { value: 'issues', label: `Issues${count(issues)}` },
         { value: 'payouts', label: `Payouts${payouts && partPayouts ? ` (${payouts.length + partPayouts.length})` : ''}` },
       ]} />
       <ErrorText error={error} />
-      {loading ? <Loading /> : null}
+      {loading ? <Skeleton rows={3} /> : null}
 
       {!loading && tab === 'payments' ? (payments!.length ? payments!.map((j) => (
         <View key={j.id}>
@@ -89,6 +108,9 @@ export default function AdminHome() {
             onPress={() => quickConfirm(j)} style={{ marginTop: -spacing.sm, marginBottom: spacing.lg }} />
         </View>
       )) : <Empty icon="card-outline" title="No payments to confirm" />) : null}
+
+      {!loading && tab === 'messages' ? (chats.length ? chats.map((j) => <JobItem key={j.id} job={j} role="admin" subtitle={`${j.code} · new message`} />)
+        : <Empty icon="chatbubbles-outline" title="No unread messages" />) : null}
 
       {!loading && tab === 'technicians' ? (techs!.length ? techs!.map((t) => (
         <Card key={t.id} onPress={() => router.push(`/admin-technician/${t.id}`)} accessibilityLabel={`Review ${t.shop_name}`}>

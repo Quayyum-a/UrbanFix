@@ -81,10 +81,16 @@ export async function signOut() {
 }
 
 // ---------------- profile ----------------
+/** Signed-in user's id from the saved session (no network round trip). */
+async function myId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? null
+}
+
 export async function getMyProfile(): Promise<Profile | null> {
-  const { data: u } = await supabase.auth.getUser()
-  if (!u.user) return null
-  const { data, error } = await supabase.from('profiles').select('*').eq('id', u.user.id).maybeSingle()
+  const id = await myId()
+  if (!id) return null
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data as Profile | null
 }
@@ -99,12 +105,12 @@ export function updateMyProfile(fullName: string, area?: string | null, address?
 
 // ---------------- technician ----------------
 export async function getMyTechnician(): Promise<{ tech: Technician; priv: TechnicianPrivate | null; services: Service[] } | null> {
-  const { data: u } = await supabase.auth.getUser()
-  if (!u.user) return null
+  const id = await myId()
+  if (!id) return null
   const [t, p, s] = await Promise.all([
-    supabase.from('technicians').select('*').eq('id', u.user.id).maybeSingle(),
-    supabase.from('technician_private').select('*').eq('id', u.user.id).maybeSingle(),
-    supabase.from('services').select('*').eq('technician_id', u.user.id),
+    supabase.from('technicians').select('*').eq('id', id).maybeSingle(),
+    supabase.from('technician_private').select('*').eq('id', id).maybeSingle(),
+    supabase.from('services').select('*').eq('technician_id', id),
   ])
   if (t.error) throw t.error
   if (p.error) throw p.error
@@ -193,6 +199,9 @@ export async function listMessages(jobId: string, afterId = 0): Promise<Message[
   return (data ?? []) as Message[]
 }
 export const sendMessage = (jobId: string, body: string) => rpc<Message>('send_message', { p_job_id: jobId, p_body: body.trim() })
+export const myUnread = () => rpc<{ job_id: string; unread: number; last_message_at: string }[]>('my_unread')
+export const markMessagesRead = (jobId: string, lastId?: number | null) =>
+  rpc<null>('mark_messages_read', { p_job_id: jobId, p_last_id: lastId ?? null })
 
 // ---------------- admin ----------------
 export const adminJobs = (statuses: string[] | null, payout?: 'repair_fee' | 'part') =>

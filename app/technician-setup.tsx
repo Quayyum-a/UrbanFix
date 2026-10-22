@@ -5,8 +5,9 @@ import { router } from 'expo-router'
 import React, { useState } from 'react'
 import { Text, View } from 'react-native'
 import { PhotoPicker } from '@/components/PhotoPicker'
-import { Banner, Button, Card, Chips, ErrorText, Field, Loading, Screen, Small, Title } from '@/components/ui'
-import { AREAS, BANKS, DEVICES, REPAIRS, type DeviceType } from '@/constants/catalog'
+import { LocationPicker } from '@/components/LocationPicker'
+import { Banner, Button, Card, Chips, ErrorText, Field, Screen, Skeleton, Small, Title } from '@/components/ui'
+import { BANKS, DEVICES, REPAIRS, type DeviceType } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import * as api from '@/lib/api'
 import { useSession } from '@/lib/session'
@@ -35,7 +36,7 @@ export default function TechnicianSetup() {
   const guard = useRoleGuard('technician')
   const { data, error, reload } = useMyTechnician()
   if (guard) return guard
-  if (!data) return <Screen>{error ? <ErrorText error={error} /> : <Loading />}</Screen>
+  if (!data) return <Screen>{error ? <ErrorText error={error} /> : <Skeleton rows={3} />}</Screen>
   return <SetupForm data={data} reload={reload} />
 }
 
@@ -61,7 +62,7 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
   // Form fields start from what's saved; later reloads don't overwrite typing.
   const [shopName, setShopName] = useState(data.tech.shop_name ?? '')
   const [shopAddress, setShopAddress] = useState(data.tech.shop_address ?? '')
-  const [area, setArea] = useState<string | null>(data.tech.area ?? profile?.area ?? 'Ikeja')
+  const [area, setArea] = useState<string | null>(data.tech.area ?? profile?.area ?? null)
   const [bio, setBio] = useState(data.tech.bio ?? '')
   const [device, setDevice] = useState<DeviceType>('smartphone')
   const [prices, setPrices] = useState<Record<string, string>>({})
@@ -108,7 +109,8 @@ function SetupForm({ data, reload }: { data: MyTechnician; reload: (manual?: boo
         <Field label="Shop or business name" value={shopName} onChangeText={setShopName} maxLength={80} testID="shop-name" />
         <Field label="Shop address" placeholder="Shop number, building, street, landmark" value={shopAddress} onChangeText={setShopAddress}
           multiline maxLength={200} testID="shop-address" />
-        <Chips label="Area" options={AREAS.map((a) => ({ value: a, label: a }))} value={area} onChange={setArea} />
+        <LocationPicker area={area} compact title="Shop area" why="Use your location while you're at the shop."
+          onChange={(a, addr) => { setArea(a); if (addr && !shopAddress.trim()) setShopAddress(addr) }} />
         <Field label="What you're good at (optional)" placeholder="e.g. iPhone screens, Tecno charging ports" value={bio} onChangeText={setBio} maxLength={300} />
         {shopErr && (shopName || shopAddress) ? <Small style={{ color: colors.danger, marginBottom: spacing.sm }}>{shopErr}</Small> : null}
         <Button title="Save shop" disabled={!!shopErr} loading={busy === 'shop'} testID="save-shop"

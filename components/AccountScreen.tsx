@@ -1,8 +1,8 @@
-// Shared account screen: edit name/area/address, sign out.
+// Shared account screen: name, location (from the phone, not a picker), address, sign out.
 import React, { useState } from 'react'
 import { Alert } from 'react-native'
-import { Banner, Button, Card, Chips, ErrorText, Field, Row, Screen, Title } from '@/components/ui'
-import { AREAS } from '@/constants/catalog'
+import { LocationPicker } from '@/components/LocationPicker'
+import { Banner, Button, Card, ErrorText, Field, Row, Screen, Title } from '@/components/ui'
 import { friendlyError, signOut, updateMyProfile } from '@/lib/api'
 import { useSession } from '@/lib/session'
 import { addressProblem, displayPhone, nameProblem } from '@/lib/validation'
@@ -34,6 +34,18 @@ export function AccountScreen({ children, showAddress = true }: { children?: Rea
     }
   }
 
+  // A location change saves straight away: one tap, no extra Save.
+  const saveLocation = async (newArea: string, detected: string | null) => {
+    const newAddress = showAddress && detected && !address ? detected : address
+    setArea(newArea); setAddress(newAddress); setError(null); setSaved(false)
+    try {
+      setProfile(await updateMyProfile(profile.full_name, newArea, (showAddress ? newAddress : profile.address) || null))
+      setSaved(true)
+    } catch (e) {
+      setError(friendlyError(e))
+    }
+  }
+
   return (
     <Screen>
       <Title>Account</Title>
@@ -43,7 +55,7 @@ export function AccountScreen({ children, showAddress = true }: { children?: Rea
       </Card>
       {children}
       <Field label="Name" value={name} onChangeText={(t) => { setName(t); setSaved(false) }} error={nameErr} maxLength={80} />
-      <Chips label="Area" options={AREAS.map((a) => ({ value: a, label: a }))} value={area} onChange={(a) => { setArea(a); setSaved(false) }} />
+      <LocationPicker area={area} compact title="Area" onChange={(a, addr) => void saveLocation(a, addr)} />
       {showAddress ? (
         <Field label="Address for home visits (optional)" value={address} onChangeText={(t) => { setAddress(t); setSaved(false) }}
           multiline maxLength={200} error={addrErr} />

@@ -184,3 +184,27 @@ test('an unknown device in the link falls back to phones; technicians are redire
   render(<Book />)
   expect(screen.getByTestId('redirect')).toHaveTextContent('redirect:/technician')
 })
+
+test('nearest technicians first, with "Near you"; someone you used before stays on top', async () => {
+  m.findTechnicians.mockResolvedValue([
+    TECH({ technician_id: 'far', shop_name: 'Lekki Fix', area: 'Lekki' }),
+    TECH({ technician_id: 'near', shop_name: 'Ikeja Fix', area: 'Ikeja' }),
+    TECH({ technician_id: 'old', shop_name: 'Yaba Fix', area: 'Yaba', used_before: true }),
+  ])
+  render(<Book />)
+  fireEvent.press(await screen.findByTestId('brand-iphone'))
+  fireEvent.press(await screen.findByTestId('model-40'))
+  fireEvent.press(screen.getByTestId('problem-screen_replacement'))
+  fireEvent.press(await screen.findByTestId('grade-premium'))
+  await screen.findByTestId('tech-near')
+  const order = screen.getAllByTestId(/^tech-/).map((n) => n.props.testID)
+  expect(order).toEqual(['tech-old', 'tech-near', 'tech-far'])
+  expect(within(screen.getByTestId('tech-near')).getByText(/Near you/)).toBeTruthy()
+  expect(within(screen.getByTestId('tech-far')).getByText(/km away/)).toBeTruthy()
+})
+
+test('loading steps show placeholders, never an empty screen', async () => {
+  m.listBrands.mockReturnValue(new Promise(() => {}))
+  render(<Book />)
+  expect(screen.getByTestId('skeleton')).toBeTruthy()
+})

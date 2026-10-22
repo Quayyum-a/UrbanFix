@@ -3,7 +3,7 @@ import { router } from 'expo-router'
 import React, { useState } from 'react'
 import { Switch, Text, View } from 'react-native'
 import { JobItem } from '@/components/JobItem'
-import { Banner, Button, Card, Empty, ErrorText, Heading, Loading, Screen, Small, Title } from '@/components/ui'
+import { Banner, Button, Card, Empty, ErrorText, Heading, Screen, Skeleton, Small, Title } from '@/components/ui'
 import { colors, font, spacing } from '@/constants/theme'
 import { friendlyError, setAvailability } from '@/lib/api'
 import { needsMe } from '@/lib/jobFlow'
@@ -16,11 +16,11 @@ const DONE = ['completed', 'refunded', 'cancelled', 'declined']
 export default function TechnicianJobs() {
   const profile = useSession((s) => s.profile)
   const { data, reload: reloadTech } = useMyTechnician()
-  const { jobs, error, refreshing, reload } = useMyJobs(10000)
+  const { jobs, error, refreshing, reload } = useMyJobs()
   const [toggling, setToggling] = useState(false)
   const [toggleError, setToggleError] = useState<string | null>(null)
 
-  if (!data) return <Screen scroll={false}><Loading /></Screen>
+  if (!data) return <Screen><Skeleton rows={4} /></Screen>
   const { tech } = data
   const progress = setupProgress(data)
 
@@ -74,7 +74,7 @@ export default function TechnicianJobs() {
       ) : null}
 
       <ErrorText error={error} />
-      {jobs === null ? <Loading /> : (
+      {jobs === null ? <Skeleton rows={3} /> : (
         <>
           {mine.length ? <Heading>Needs you</Heading> : null}
           {mine.map((j) => <JobItem key={j.id} job={j} role="technician" amount="payout" />)}

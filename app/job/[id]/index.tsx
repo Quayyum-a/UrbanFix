@@ -6,10 +6,12 @@ import { Linking, Text, View } from 'react-native'
 import { Evidence } from '@/components/Evidence'
 import { PriceBreakdown } from '@/components/PriceBreakdown'
 import { JobActions } from '@/components/JobActions'
-import { Banner, Button, Card, Empty, Heading, Loading, Pill, Row, Screen, Small, Stars } from '@/components/ui'
+import { Banner, Button, Card, Dot, Empty, Heading, Pill, Row, Screen, Skeleton, Small, Stars } from '@/components/ui'
 import { deviceName, repairLabel } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import { friendlyError, getJob } from '@/lib/api'
+import { cachedJob, rememberJob } from '@/lib/jobCache'
+import { useLive } from '@/lib/live'
 import { hoursLeft, nextStep, PROGRESS_STEPS, progressIndex, STATUS_LABEL, tone } from '@/lib/jobFlow'
 import { useSession } from '@/lib/session'
 import type { JobDetails, PayoutStatus } from '@/lib/types'
@@ -31,24 +33,28 @@ function Progress({ index }: { index: number }) {
 
 export default function JobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const [d, setD] = useState<JobDetails | null>(null)
+  const [d, setD] = useState<JobDetails | null>(() => cachedJob(id))
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const alive = useRef(true)
   const sessionStatus = useSession((s) => s.status)
+  const noteStatus = useLive((s) => s.noteStatus)
+  const unread = useLive((s) => (id ? s.unread[id] ?? 0 : 0))
 
   const load = useCallback(async (manual = false) => {
     if (!id) return
     if (manual) setRefreshing(true)
     try {
       const data = await getJob(id)
+      rememberJob(id, data)
+      noteStatus(id, data.job.status) // you saw it here, so no extra buzz for it
       if (alive.current) { setD(data); setError(null) }
     } catch (e) {
       if (alive.current) setError(friendlyError(e))
     } finally {
       if (alive.current) setRefreshing(false)
     }
-  }, [id])
+  }, [id, noteStatus])
 
   useFocusEffect(useCallback(() => {
     alive.current = true
@@ -63,7 +69,7 @@ export default function JobScreen() {
     return (
       <Screen scroll={false} edges={['left', 'right']}>
         {error ? <Empty icon="alert-circle-outline" title="Couldn't open this repair" text={error}
-          action={<Button title="Try again" onPress={() => void load(true)} />} /> : <Loading />}
+          action={<Button title="Try again" onPress={() => void load(true)} />} /> : <View style={{ padding: spacing.lg }}><Skeleton rows={3} /></View>}
       </Screen>
     )
   }
@@ -112,9 +118,13 @@ export default function JobScreen() {
 
       <JobActions d={d} onChanged={() => void load()} />
 
-      {!closed ? (
-        <Button title={`Message ${role === 'admin' ? 'customer and technician' : other}`} kind="secondary" icon="chatbubbles-outline"
-          onPress={() => router.push(`/job/${job.id}/chat`)} testID="open-chat" />
+      {!closed || unread ? (
+        <View>
+          <Button title={unread ? `${unread > 1 ? `${unread} new messages` : 'New message'} from ${role === 'admin' ? 'this repair' : other}` : `Message ${role === 'admin' ? 'customer and technician' : other}`}
+            kind={unread ? 'primary' : 'secondary'} icon="chatbubbles-outline"
+            onPress={() => router.push(`/job/${job.id}/chat`)} testID="open-chat" />
+          {unread ? <Dot count={unread} style={{ position: 'absolute', top: -6, right: -4 }} testID="chat-dot" /> : null}
+        </View>
       ) : null}
 
       <Heading>Details</Heading>

@@ -15,7 +15,7 @@ function settingsReturns(row: object | null, error: object | null = null) {
 }
 
 beforeEach(() => {
-  ;(supabase.auth.getUser as jest.Mock).mockResolvedValue({ data: { user: { id: 'u1' } } })
+  ;(supabase.auth.getSession as jest.Mock).mockResolvedValue({ data: { session: { user: { id: 'u1' } } } })
   useSession.setState({ session: { user: { id: 'u1' } } as never, status: 'loading', profile: null })
 })
 
