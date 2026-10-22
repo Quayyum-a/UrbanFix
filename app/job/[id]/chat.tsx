@@ -2,11 +2,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import React, { useCallback, useRef, useState } from 'react'
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Banner, Empty, tap } from '@/components/ui'
+import { Banner, Empty, Skeleton, tap } from '@/components/ui'
 import { colors, font, radius, spacing } from '@/constants/theme'
 import { friendlyError, listMessages, sendMessage } from '@/lib/api'
+import { useLive } from '@/lib/live'
 import { useSession } from '@/lib/session'
 import type { Message } from '@/lib/types'
 
@@ -14,6 +15,8 @@ export default function Chat() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { status, profile } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const markRead = useLive((s) => s.markRead)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,18 +30,21 @@ export default function Chat() {
       if (fresh.length) {
         lastId.current = fresh[fresh.length - 1]!.id
         setMessages((m) => [...m, ...fresh.filter((f) => !m.some((x) => x.id === f.id))])
+        markRead(id, lastId.current) // the chat is open, so these are seen
       }
+      setLoaded(true)
       setError(null)
     } catch (e) {
       setError(friendlyError(e))
     }
-  }, [id])
+  }, [id, markRead])
 
   useFocusEffect(useCallback(() => {
+    if (id) markRead(id, null)
     void poll()
     const t = setInterval(() => void poll(), 4000)
     return () => clearInterval(t)
-  }, [poll]))
+  }, [poll, id, markRead]))
 
   if (status !== 'ready') return <Redirect href="/" />
 
@@ -69,7 +75,7 @@ export default function Chat() {
           keyExtractor={(m) => String(m.id)}
           contentContainerStyle={{ padding: spacing.lg, flexGrow: 1 }}
           onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
-          ListEmptyComponent={<Empty icon="chatbubbles-outline" title="No messages yet" text="Ask a question or agree on a time. UrbanFix support can see this chat if there's a problem." />}
+          ListEmptyComponent={!loaded && !error ? <Skeleton rows={2} /> : <Empty icon="chatbubbles-outline" title="No messages yet" text="Ask a question or agree on a time. UrbanFix support can see this chat if there's a problem." />}
           renderItem={({ item }) => {
             const mine = item.sender_id === profile?.id
             return (
@@ -95,9 +101,9 @@ export default function Chat() {
             accessibilityLabel="Message"
             testID="chat-input"
           />
-          <Pressable onPress={send} disabled={!text.trim() || sending} style={[styles.send, (!text.trim() || sending) && { opacity: 0.4 }]}
+          <Pressable onPress={send} disabled={!text.trim() || sending} style={[styles.send, !text.trim() && !sending && { opacity: 0.4 }]}
             accessibilityRole="button" accessibilityLabel="Send" testID="chat-send">
-            <Ionicons name="send" size={20} color={colors.onPrimary} />
+            {sending ? <ActivityIndicator color={colors.onPrimary} /> : <Ionicons name="send" size={20} color={colors.onPrimary} />}
           </Pressable>
         </View>
       </KeyboardAvoidingView>

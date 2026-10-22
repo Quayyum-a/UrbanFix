@@ -1,8 +1,8 @@
 // First-time setup: what you're here for, and your name. One screen.
 import { Redirect, router } from 'expo-router'
 import React, { useState } from 'react'
-import { Button, Chips, Choice, ErrorText, Field, Screen, Small, Title } from '@/components/ui'
-import { AREAS } from '@/constants/catalog'
+import { LocationPicker } from '@/components/LocationPicker'
+import { Button, Choice, ErrorText, Field, Screen, Small, Title } from '@/components/ui'
 import { completeSignup, friendlyError, signOut } from '@/lib/api'
 import { homeFor, useSession } from '@/lib/session'
 import { nameProblem } from '@/lib/validation'
@@ -11,7 +11,8 @@ export default function Setup() {
   const { status, profile, setProfile } = useSession()
   const [role, setRole] = useState<'customer' | 'technician' | null>(null)
   const [name, setName] = useState('')
-  const [area, setArea] = useState<string | null>('Ikeja')
+  const [area, setArea] = useState<string | null>(null)
+  const [address, setAddress] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
@@ -25,7 +26,7 @@ export default function Setup() {
     if (!role || nameErr) return
     setBusy(true); setError(null)
     try {
-      const p = await completeSignup(role, name, area, null)
+      const p = await completeSignup(role, name, area, role === 'customer' ? address : null)
       setProfile(p)
       router.replace(role === 'technician' ? '/technician-setup' : '/customer')
     } catch (e) {
@@ -57,8 +58,9 @@ export default function Setup() {
             onBlur={() => setTouched(true)}
             testID="name"
           />
-          <Chips label={role === 'technician' ? 'Where is your shop?' : 'Where are you?'}
-            options={AREAS.slice(0, 10).map((a) => ({ value: a, label: a }))} value={area} onChange={setArea} />
+          <LocationPicker area={area} onChange={(a, addr) => { setArea(a); setAddress(addr) }}
+            title={role === 'technician' ? 'Shop area' : 'Your area'}
+            why={role === 'technician' ? 'So customers nearby can find you.' : 'We ask once, to show technicians near you. You can skip this.'} />
           <ErrorText error={error} />
         </>
       ) : null}

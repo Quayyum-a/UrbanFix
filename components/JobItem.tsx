@@ -4,9 +4,10 @@ import { Text, View } from 'react-native'
 import { deviceName, repairLabel } from '@/constants/catalog'
 import { colors, font, spacing } from '@/constants/theme'
 import { needsMe, STATUS_LABEL, tone } from '@/lib/jobFlow'
+import { useLive } from '@/lib/live'
 import type { Job, JobSummary, Role } from '@/lib/types'
 import { formatNaira } from '@/lib/validation'
-import { Card, Pill } from './ui'
+import { Card, Dot, Pill } from './ui'
 
 export function JobItem({ job, role, amount = 'price', subtitle }: {
   job: JobSummary | Job
@@ -17,11 +18,12 @@ export function JobItem({ job, role, amount = 'price', subtitle }: {
   const who = 'other_party' in job ? job.other_party : null
   const device = deviceName(job.brand, job.model, job.device_type)
   const urgent = needsMe(role, job.status)
+  const unread = useLive((st) => st.unread[job.id] ?? 0)
   return (
     <Card
       testID={`job-${job.code}`}
       onPress={() => router.push(`/job/${job.id}`)}
-      accessibilityLabel={`${device}, ${STATUS_LABEL[job.status]}`}
+      accessibilityLabel={`${device}, ${STATUS_LABEL[job.status]}${unread ? `, ${unread} new message${unread > 1 ? 's' : ''}` : ''}`}
       style={urgent ? { borderColor: colors.accent, borderWidth: 1.5 } : undefined}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md }}>
@@ -32,8 +34,14 @@ export function JobItem({ job, role, amount = 'price', subtitle }: {
         </View>
         <Text style={font.bodyStrong}>{formatNaira(amount === 'payout' ? (job.payout_kobo ?? 0) : job.price_kobo)}</Text>
       </View>
-      <View style={{ marginTop: spacing.sm }}>
+      <View style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
         <Pill text={urgent && role !== 'admin' ? `Your turn · ${STATUS_LABEL[job.status]}` : STATUS_LABEL[job.status]} tone={tone(role, job.status)} />
+        {unread ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }} testID={`unread-${job.code}`}>
+            <Dot count={unread} />
+            <Text style={[font.small, { color: colors.danger, fontWeight: '700' }]}>{unread > 1 ? 'New messages' : 'New message'}</Text>
+          </View>
+        ) : null}
       </View>
     </Card>
   )

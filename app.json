@@ -11,7 +11,8 @@
       "bundleIdentifier": "com.urbanfix.app",
       "infoPlist": {
         "NSCameraUsageDescription": "UrbanFix uses the camera to photograph devices at drop-off and after repair, and to capture technician ID documents.",
-        "NSPhotoLibraryUsageDescription": "UrbanFix lets you choose existing photos of a device or ID document."
+        "NSPhotoLibraryUsageDescription": "UrbanFix lets you choose existing photos of a device or ID document.",
+        "NSLocationWhenInUseUsageDescription": "UrbanFix uses your location once to find your area and show technicians near you."
       }
     },
     "android": {
@@ -21,7 +22,10 @@
       },
       "package": "com.urbanfix.app",
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "VIBRATE"
       ]
     },
     "web": {
@@ -43,6 +47,12 @@
         {
           "photosPermission": "UrbanFix lets you choose existing photos of a device or ID document.",
           "cameraPermission": "UrbanFix uses the camera to photograph devices at drop-off and after repair, and to capture technician ID documents."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "UrbanFix uses your location once to find your area and show technicians near you."
         }
       ]
     ],

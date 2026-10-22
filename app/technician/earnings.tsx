@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router'
 import React, { useCallback, useState } from 'react'
 import { Text } from 'react-native'
-import { Card, ErrorText, Loading, Row, Screen, Small, Stars, Title } from '@/components/ui'
+import { Card, ErrorText, Row, Screen, Skeleton, Small, Stars, Title } from '@/components/ui'
 import { font, spacing } from '@/constants/theme'
 import { friendlyError, myEarnings } from '@/lib/api'
 import type { Earnings } from '@/lib/types'
@@ -22,7 +22,7 @@ export default function EarningsScreen() {
     <Screen refreshing={refreshing} onRefresh={() => void load(true)}>
       <Title sub="What you've earned through UrbanFix, after fees.">Earnings</Title>
       <ErrorText error={error} />
-      {!e ? <Loading /> : (
+      {!e ? (error ? null : <Skeleton rows={3} />) : (
         <>
           <Card>
             <Small>Paid to your bank</Small>

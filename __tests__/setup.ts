@@ -22,7 +22,16 @@ jest.mock('@expo/vector-icons', () => {
   Icon.glyphMap = {}
   return { Ionicons: Icon }
 })
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(() => Promise.resolve()), ImpactFeedbackStyle: { Light: 'light' } }))
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()), notificationAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' }, NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
+}))
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'))
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn(), getLastKnownPositionAsync: jest.fn(), getCurrentPositionAsync: jest.fn(),
+  reverseGeocodeAsync: jest.fn(), Accuracy: { Balanced: 3 },
+}))
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(() => Promise.resolve(true)) }))
 
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), navigate: jest.fn() }
@@ -45,6 +54,12 @@ jest.mock('expo-router', () => {
 
 afterEach(() => {
   jest.clearAllMocks()
+  // Caches live for the whole app session; each test starts fresh.
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  require('@/lib/jobCache').forgetJobs()
+  require('@/lib/useTechnician').forgetTechnician()
+  require('@/lib/live').useLive.getState().reset()
+  /* eslint-enable @typescript-eslint/no-require-imports */
 })
 
 export {}

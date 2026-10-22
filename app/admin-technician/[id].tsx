@@ -2,7 +2,7 @@
 import { router, useLocalSearchParams } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { Image, Text } from 'react-native'
-import { Banner, Button, Card, ErrorText, Field, Heading, Loading, Row, Screen, Small } from '@/components/ui'
+import { Banner, Button, Card, ErrorText, Field, Heading, Skeleton, Row, Screen, Small } from '@/components/ui'
 import { repairLabel, deviceLabel } from '@/constants/catalog'
 import { font, radius } from '@/constants/theme'
 import * as api from '@/lib/api'
@@ -32,7 +32,7 @@ export default function ReviewTechnician() {
   }, [id])
 
   if (guard) return guard
-  if (!d) return <Screen edges={['left', 'right']}>{error ? <ErrorText error={error} /> : <Loading />}</Screen>
+  if (!d) return <Screen edges={['left', 'right']}>{error ? <ErrorText error={error} /> : <Skeleton rows={3} />}</Screen>
 
   const decide = async (approve: boolean) => {
     setBusy(true); setError(null)

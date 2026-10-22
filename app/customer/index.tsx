@@ -1,20 +1,46 @@
 // Home: one tap on a device starts a booking. Repairs that need you are on top.
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import React from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import React, { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { JobItem } from '@/components/JobItem'
-import { ErrorText, Heading, Screen, Small, tap, Title } from '@/components/ui'
+import { LocationPicker } from '@/components/LocationPicker'
+import { Button, ErrorText, Heading, Screen, Skeleton, Small, tap, Title } from '@/components/ui'
 import { DEVICES } from '@/constants/catalog'
 import { colors, font, radius, shadow, spacing } from '@/constants/theme'
 import { needsMe } from '@/lib/jobFlow'
+import { friendlyError, updateMyProfile } from '@/lib/api'
 import { useSession } from '@/lib/session'
 import { useMyJobs } from '@/lib/useJobs'
 
-const ACTIVE = ['requested', 'accepted', 'payment_submitted', 'paid', 'in_repair', 'awaiting_confirmation', 'disputed']
+const ACTIVE = ['requested', 'accepted', 'quoted', 'payment_submitted', 'paid', 'in_repair', 'awaiting_confirmation', 'warranty', 'disputed']
+export const LOCATION_ASKED_KEY = 'uf.locationAsked'
 
 export default function CustomerHome() {
   const profile = useSession((s) => s.profile)
+  const setProfile = useSession((s) => s.setProfile)
+  const [askLocation, setAskLocation] = useState(false)
+  const [locError, setLocError] = useState<string | null>(null)
+
+  // Ask for location once, only if we don't know the area yet.
+  useEffect(() => {
+    if (profile?.area) return
+    let live = true
+    AsyncStorage.getItem(LOCATION_ASKED_KEY).then((v) => { if (live && !v) setAskLocation(true) }).catch(() => {})
+    return () => { live = false }
+  }, [profile?.area])
+
+  const stopAsking = () => { setAskLocation(false); AsyncStorage.setItem(LOCATION_ASKED_KEY, '1').catch(() => {}) }
+  const saveLocation = async (area: string, address: string | null) => {
+    if (!profile) return
+    try {
+      setProfile(await updateMyProfile(profile.full_name, area, profile.address ?? address))
+      stopAsking()
+    } catch (e) {
+      setLocError(friendlyError(e))
+    }
+  }
   const { jobs, error, refreshing, reload } = useMyJobs()
   const active = (jobs ?? []).filter((j) => ACTIVE.includes(j.status))
     .sort((a, b) => Number(needsMe('customer', b.status)) - Number(needsMe('customer', a.status)))
@@ -23,6 +49,14 @@ export default function CustomerHome() {
   return (
     <Screen refreshing={refreshing} onRefresh={reload}>
       <Title sub="Pick your device to see verified technicians and prices.">Hi {first}, what needs fixing?</Title>
+      {askLocation && !profile?.area ? (
+        <>
+          <LocationPicker area={null} onChange={(a, addr) => void saveLocation(a, addr)} title="Find technicians near you"
+            why="Share your location once. We use it to show nearby technicians and fill in your address for home visits." />
+          <Button title="Not now" kind="ghost" onPress={stopAsking} testID="skip-location" />
+          <ErrorText error={locError} />
+        </>
+      ) : null}
       <View style={styles.grid}>
         {DEVICES.map((d) => (
           <Pressable
@@ -40,6 +74,7 @@ export default function CustomerHome() {
       </View>
 
       <ErrorText error={error} />
+      {jobs === null && !error ? <><Heading>Your repairs</Heading><Skeleton rows={1} /></> : null}
       {active.length ? (
         <>
           <Heading>Your repairs</Heading>
