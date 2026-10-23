@@ -8,6 +8,7 @@ export function TabsLayout({ tabs }: {
 }) {
   return (
     <Tabs
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,

@@ -128,3 +128,18 @@ The database tests run `database/urbanfix.sql` on a real Postgres and act as cus
 - **Phone ownership isn't verified.** Without SMS codes, someone could sign up with a number that isn't theirs. Add OTP (e.g. Termii) before a public launch.
 - **No push notifications.** Screens refresh every few seconds while open.
 - Payouts and refunds are sent manually from your bank and then recorded in the app.
+
+## Sending test builds to people
+
+The app reads `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from `.env` locally, but cloud builds don't upload `.env`. Add them to EAS once:
+
+```
+npm install -g eas-cli
+eas login
+eas init
+eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR-PROJECT.supabase.co --environment preview --environment production --visibility plaintext
+eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value YOUR-ANON-KEY --environment preview --environment production --visibility plaintext
+```
+
+- **Android testers (free):** `eas build -p android --profile preview`. Share the install link EAS gives you.
+- **iPhone testers (TestFlight, needs an Apple Developer account):** `eas build -p ios --profile production --auto-submit`, then add testers in App Store Connect → TestFlight.

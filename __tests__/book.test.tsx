@@ -208,3 +208,62 @@ test('loading steps show placeholders, never an empty screen', async () => {
   render(<Book />)
   expect(screen.getByTestId('skeleton')).toBeTruthy()
 })
+
+describe('phone back button steps back through booking', () => {
+  const back = () => act(() => { (globalThis as any).__pressBack() })
+  const nav = (globalThis as any).__navigation
+
+  test('from confirm all the way back, one step at a time, then out', async () => {
+    await toConfirm()
+    back(); expect(await screen.findByText('Choose a technician')).toBeTruthy()
+    back(); expect(await screen.findByText('Choose part quality')).toBeTruthy()
+    back(); expect(await screen.findByText("What's wrong?")).toBeTruthy()
+    back(); expect(await screen.findByText('Which iPhone model?')).toBeTruthy()
+    back(); expect(await screen.findByText("Tap your brand.")).toBeTruthy()
+    expect(nav.goBack).not.toHaveBeenCalled()
+    back(); expect(nav.goBack).toHaveBeenCalledTimes(1) // only now leave booking
+    expect(router.replace).not.toHaveBeenCalled()
+  })
+
+  test('a repair without a part goes from technicians straight back to the problem list', async () => {
+    m.findTechnicians.mockResolvedValue([TECH({ part_pending: false })])
+    render(<Book />)
+    fireEvent.press(await screen.findByTestId('brand-iphone'))
+    fireEvent.press(await screen.findByTestId('model-40'))
+    fireEvent.press(screen.getByTestId('problem-software_issues'))
+    await screen.findByText('Choose a technician')
+    back(); expect(await screen.findByText("What's wrong?")).toBeTruthy()
+  })
+
+  test('typing an unlisted model: back returns to the model list', async () => {
+    render(<Book />)
+    fireEvent.press(await screen.findByTestId('brand-tecno'))
+    fireEvent.press(await screen.findByTestId('model-other'))
+    await screen.findByText('Type your model')
+    back(); expect(await screen.findByText(/Which Tecno model\?/)).toBeTruthy()
+  })
+
+  test('after sending the request, leaving is not blocked', async () => {
+    await toConfirm()
+    fireEvent.press(screen.getByTestId('request'))
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/job/job-1'))
+    back()
+    expect(nav.dispatch).toHaveBeenCalledWith({ type: 'GO_BACK' })
+  })
+})
+
+describe('brand tiles', () => {
+  test('every brand gets a badge; "Other" gets a device picture', async () => {
+    render(<Book />)
+    expect(await screen.findByTestId('brand-badge-iphone')).toBeTruthy()
+    expect(within(screen.getByTestId('brand-badge-iphone')).getByText('iP')).toBeTruthy()
+    expect(within(screen.getByTestId('brand-badge-tecno')).getByText('T')).toBeTruthy()
+    expect(screen.getByTestId('brand-badge-other_android')).toBeTruthy()
+  })
+
+  test('initials', () => {
+    const { brandInitials } = jest.requireActual('@/components/BrandBadge')
+    expect(['iPhone', 'iPad', 'Samsung', 'HP', 'Redmi / Xiaomi', 'itel', 'Other / custom-built'].map(brandInitials))
+      .toEqual(['iP', 'iP', 'S', 'HP', 'R', 'I', 'O'])
+  })
+})

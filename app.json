@@ -12,7 +12,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "UrbanFix uses the camera to photograph devices at drop-off and after repair, and to capture technician ID documents.",
         "NSPhotoLibraryUsageDescription": "UrbanFix lets you choose existing photos of a device or ID document.",
-        "NSLocationWhenInUseUsageDescription": "UrbanFix uses your location once to find your area and show technicians near you."
+        "NSLocationWhenInUseUsageDescription": "UrbanFix uses your location once to find your area and show technicians near you.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
