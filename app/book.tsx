@@ -1,9 +1,11 @@
 // Booking: brand → model → problem → part quality → technician → confirm.
 // Every step is one tap; typing is only needed for an unlisted model or a home-visit address.
 import { Ionicons } from '@expo/vector-icons'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
-import React, { useEffect, useMemo, useState } from 'react'
+import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router'
+import { usePreventRemove } from 'expo-router/react-navigation'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { BrandBadge } from '@/components/BrandBadge'
 import { PriceBreakdown } from '@/components/PriceBreakdown'
 import {
   Banner, Button, Card, Chips, Choice, Empty, ErrorText, Field, P, Pill, Screen, Skeleton, Small, tap, Title,
@@ -16,10 +18,6 @@ import { useSession } from '@/lib/session'
 import type { DeviceBrand, DeviceModel, Grade, GradeOption, TechnicianMatch } from '@/lib/types'
 import { addressProblem, formatNaira, textProblem } from '@/lib/validation'
 import { useRoleGuard } from '@/lib/useRole'
-
-const BRAND_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  iphone: 'logo-apple', macbook: 'logo-apple', ipad: 'logo-apple', imac: 'logo-apple', other_android: 'logo-android',
-}
 
 function Back({ label, onPress }: { label: string; onPress: () => void }) {
   return <Button title={label} kind="ghost" icon="arrow-back" onPress={onPress} style={{ alignSelf: 'flex-start', paddingHorizontal: 0 }} />
@@ -88,6 +86,22 @@ export default function Book() {
     return () => { live = false }
   }, [readyForTechs, device, category, model, gradeKey])
 
+  // Phone back button / header arrow: go back one step, not out of booking.
+  const navigation = useNavigation()
+  const leaving = useRef(false)
+  const stepBack = () => {
+    setError(null)
+    if (tech) { setTech(null); return }
+    if (readyForTechs) { if (noGrade) { setCategory(null); setGrades(null); setNoGrade(false); setTechs(null) } else { setGrade(null); setTechs(null) } return }
+    if (category) { setCategory(null); setGrades(null); setNoGrade(false); return }
+    if (modelChosen || typingModel) { setModel(null); setTypingModel(false); setModelText(''); setModelConfirmed(false); return }
+    if (brand) { setBrand(null); setModels(null); setSearch('') }
+  }
+  usePreventRemove(!!brand, ({ data }) => {
+    if (leaving.current) navigation.dispatch(data.action)
+    else stepBack()
+  })
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (models ?? []).filter((m) => !q || m.name.toLowerCase().includes(q))
@@ -124,8 +138,8 @@ export default function Book() {
             {brands.map((b) => (
               <Pressable key={b.brand} testID={`brand-${b.brand}`} accessibilityRole="button" accessibilityLabel={b.label}
                 onPress={() => { tap(); setBrand(b) }} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.85 }]}>
-                <Ionicons name={BRAND_ICON[b.brand] ?? (b.is_android ? 'logo-android' : 'hardware-chip-outline')} size={26} color={colors.primary} />
-                <Text style={[font.bodyStrong, { marginTop: spacing.xs, textAlign: 'center' }]}>{b.label}</Text>
+                <BrandBadge brand={b.brand} label={b.label} deviceType={device} />
+                <Text style={[font.bodyStrong, { marginTop: spacing.sm, textAlign: 'center' }]} numberOfLines={2}>{b.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -282,6 +296,7 @@ export default function Book() {
       if (mode === 'visit' && profile && !profile.address) {
         updateMyProfile(profile.full_name, profile.area, address).then(setProfile).catch(() => {})
       }
+      leaving.current = true
       router.replace(`/job/${job.id}`)
     } catch (e) {
       setError(friendlyError(e))
@@ -328,7 +343,7 @@ export default function Book() {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing.md },
-  tile: { width: '31%', minHeight: 92, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: spacing.sm },
+  tile: { width: '31%', minHeight: 116, backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', padding: spacing.sm },
   search: { minHeight: 50, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, backgroundColor: colors.surface, marginBottom: spacing.md, ...font.body },
 })
 

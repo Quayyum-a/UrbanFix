@@ -49,8 +49,21 @@ jest.mock('expo-router', () => {
     useFocusEffect: (cb: () => void | (() => void)) => R.useEffect(cb, [cb]),
     Redirect: ({ href }: { href: string }) => R.createElement('Text', { testID: 'redirect' }, `redirect:${href}`),
     Stack: Object.assign(() => null, { Screen: () => null }),
+    useNavigation: () => mockNavigation,
   }
 })
+
+// Phone back button: __pressBack() asks the screen first (usePreventRemove), like the real stack does.
+const mockNavigation = { dispatch: jest.fn(), goBack: jest.fn() }
+let mockPrevent: { on: boolean; cb: (e: { data: { action: { type: string } } }) => void } | null = null
+;(globalThis as any).__navigation = mockNavigation
+;(globalThis as any).__pressBack = () => {
+  if (mockPrevent?.on) mockPrevent.cb({ data: { action: { type: 'GO_BACK' } } })
+  else mockNavigation.goBack()
+}
+jest.mock('expo-router/react-navigation', () => ({
+  usePreventRemove: (on: boolean, cb: (e: { data: { action: { type: string } } }) => void) => { mockPrevent = { on, cb } },
+}))
 
 afterEach(() => {
   jest.clearAllMocks()
